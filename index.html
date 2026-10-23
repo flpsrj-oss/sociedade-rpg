@@ -1,365 +1,888 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel de Controle - Sociedade RPG</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel do Mestre & Sociedade RPG</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Cinzel e Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Chart.js para Gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            cinzel: ['Cinzel', 'serif'],
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            rpg: {
+              bg: '#0b0f19',
+              card: '#161e2e',
+              border: '#2a364f',
+              accent: '#f59e0b',
+              accentHover: '#d97706',
+              gold: '#fbbf24',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0b0f19;
+      color: #f3f4f6;
+      font-family: 'Inter', sans-serif;
+    }
+    .font-cinzel { font-family: 'Cinzel', serif; }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0b0f19; }
+    ::-webkit-scrollbar-thumb { background: #2a364f; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
+  </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased pb-12">
+<body class="min-h-screen flex flex-col md:flex-row antialiased selection:bg-amber-500 selection:text-slate-900">
 
-    <!-- Header / Navbar -->
-    <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="bg-indigo-600 p-2 rounded-lg text-white">
-                    <i data-lucide="shield-alert" class="w-6 h-6"></i>
-                </div>
-                <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                    Sociedade RPG / XP
-                </h1>
-            </div>
-            <div class="flex items-center space-x-3">
-                <button onclick="fetchCharactersFromSheet()" id="refreshBtn" class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-slate-700 hover:bg-slate-600 rounded-lg border border-slate-600 transition">
-                    <i data-lucide="refresh-cw" class="w-4 h-4" id="refreshIcon"></i>
-                    Sincronizar
-                </button>
-                <button onclick="openModal()" class="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-lg shadow-indigo-600/30 transition">
-                    <i data-lucide="user-plus" class="w-4 h-4"></i>
-                    Novo Personagem
-                </button>
-            </div>
-        </div>
-    </header>
+  <!-- ================= CONFIGURAÇÃO DE INTEGRAÇÃO ================= -->
+  <script>
+    // === ATENÇÃO: COLOQUE A SUA URL DO GOOGLE APPS SCRIPT AQUI ===
+    const API_URL = "SUA_URL_DO_APPS_SCRIPT_AQUI";
+  </script>
 
-    <!-- Main Container -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
+  <!-- SIDEBAR MOBILE TOPBAR -->
+  <div class="md:hidden flex items-center justify-between p-4 bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
+    <div class="flex items-center space-x-3">
+      <i class="fa-solid font-cinzel text-amber-500 text-2xl fa-shield-halved"></i>
+      <span class="font-cinzel text-xl font-bold tracking-wider text-amber-400">SOCIEDADE RPG</span>
+    </div>
+    <button id="mobileMenuBtn" class="text-slate-300 hover:text-amber-400 focus:outline-none">
+      <i class="fa-solid fa-bars text-2xl"></i>
+    </button>
+  </div>
 
-        <!-- Status de Conexão -->
-        <div id="statusBanner" class="hidden p-4 rounded-xl border text-sm flex items-center justify-between">
-            <span id="statusMessage"></span>
-        </div>
-
-        <!-- Dashboard Cards (KPIs) -->
-        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 flex items-center gap-4 shadow-sm">
-                <div class="bg-indigo-500/10 text-indigo-400 p-3 rounded-xl border border-indigo-500/20">
-                    <i data-lucide="users" class="w-6 h-6"></i>
-                </div>
-                <div>
-                    <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Total de Membros</p>
-                    <h3 id="kpiTotal" class="text-2xl font-bold mt-0.5">0</h3>
-                </div>
-            </div>
-
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 flex items-center gap-4 shadow-sm">
-                <div class="bg-purple-500/10 text-purple-400 p-3 rounded-xl border border-purple-500/20">
-                    <i data-lucide="sparkles" class="w-6 h-6"></i>
-                </div>
-                <div>
-                    <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Média de Nível</p>
-                    <h3 id="kpiAvgLevel" class="text-2xl font-bold mt-0.5">0</h3>
-                </div>
-            </div>
-
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 flex items-center gap-4 shadow-sm">
-                <div class="bg-emerald-500/10 text-emerald-400 p-3 rounded-xl border border-emerald-500/20">
-                    <i data-lucide="award" class="w-6 h-6"></i>
-                </div>
-                <div>
-                    <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Total XP do Grupo</p>
-                    <h3 id="kpiTotalXP" class="text-2xl font-bold mt-0.5">0</h3>
-                </div>
-            </div>
-
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 flex items-center gap-4 shadow-sm">
-                <div class="bg-amber-500/10 text-amber-400 p-3 rounded-xl border border-amber-500/20">
-                    <i data-lucide="crown" class="w-6 h-6"></i>
-                </div>
-                <div>
-                    <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Maior Nível</p>
-                    <h3 id="kpiMaxLevel" class="text-2xl font-bold mt-0.5">-</h3>
-                </div>
-            </div>
-        </section>
-
-        <!-- Tabela de Personagens -->
-        <section class="bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden">
-            <div class="p-5 border-b border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h2 class="text-lg font-semibold flex items-center gap-2">
-                    <i data-lucide="swords" class="w-5 h-5 text-indigo-400"></i>
-                    Lista de Personagens
-                </h2>
-                <div class="relative w-full sm:w-64">
-                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" id="searchInput" oninput="filterCharacters()" placeholder="Buscar personagem..." class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-indigo-500 transition">
-                </div>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-slate-300">
-                    <thead class="bg-slate-900/60 uppercase text-xs tracking-wider text-slate-400 border-b border-slate-700">
-                        <tr>
-                            <th class="py-3.5 px-4">Nome</th>
-                            <th class="py-3.5 px-4">Raça</th>
-                            <th class="py-3.5 px-4">Classe</th>
-                            <th class="py-3.5 px-4">Nível</th>
-                            <th class="py-3.5 px-4">XP Atual</th>
-                            <th class="py-3.5 px-4">Força</th>
-                        </tr>
-                    </thead>
-                    <tbody id="characterTableBody" class="divide-y divide-slate-700/50">
-                        <tr>
-                            <td colspan="6" class="text-center py-8 text-slate-500">
-                                Carregando dados da planilha...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </main>
-
-    <!-- Modal Novo Personagem -->
-    <div id="characterModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-slate-800 border border-slate-700 rounded-xl max-w-md w-full p-6 shadow-2xl relative">
-            <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
-                <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
-            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-                <i data-lucide="user-plus" class="w-5 h-5 text-indigo-400"></i>
-                Adicionar Novo Personagem
-            </h3>
-
-            <form id="addCharacterForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Nome do Personagem</label>
-                    <input type="text" id="formName" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Raça / Espécie</label>
-                        <input type="text" id="formRace" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Classe</label>
-                        <input type="text" id="formClass" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
-                    </div>
-                </div>
-                <div class="grid grid-cols-3 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">XP Atual</label>
-                        <input type="number" id="formXP" value="0" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Nível</label>
-                        <input type="number" id="formLevel" value="1" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Força</label>
-                        <input type="number" id="formStr" value="10" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
-                    </div>
-                </div>
-
-                <div class="pt-4 flex justify-end gap-3">
-                    <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 rounded-lg transition">Cancelar</button>
-                    <button type="submit" id="saveBtn" class="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg shadow-lg shadow-indigo-600/30 transition flex items-center gap-2">
-                        <span>Salvar na Nuvem</span>
-                    </button>
-                </div>
-            </form>
-        </div>
+  <!-- NAVEGAÇÃO LATERAL (SIDEBAR) -->
+  <aside id="sidebar" class="hidden md:flex flex-col w-full md:w-64 bg-slate-900/95 border-r border-slate-800 p-5 shrink-0 transition-all duration-300 z-30">
+    <!-- LOGO DA APLICAÇÃO -->
+    <div class="flex items-center space-x-3 mb-8 px-2">
+      <div class="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 shadow-lg shadow-amber-500/10">
+        <i class="fa-solid fa-d-and-d text-2xl"></i>
+      </div>
+      <div>
+        <h1 class="font-cinzel text-lg font-bold text-amber-400 tracking-wider">SOCIEDADE RPG</h1>
+        <p class="text-xs text-slate-400">Painel de Gestão & Lore</p>
+      </div>
     </div>
 
-    <!-- Script de Lógica e Integração Nuvem -->
-    <script>
-        // =========================================================================
-        // COLE A SUA URL DO GOOGLE APPS SCRIPT ENTRE AS ASPAS ABAIXO:
-        // =========================================================================
-        const API_URL = "https://script.google.com/macros/s/AKfycbwXawHTnSvXfzmknyl07Wo1dEebg-XvcIOshtxLi-I0hF-S49zodxaal24JZByt068DsA/exec";
+    <!-- NAVEGAÇÃO ENTRE ABAS -->
+    <nav class="space-y-1.5 flex-1">
+      <button onclick="switchTab('visao-geral')" id="nav-visao-geral" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 bg-amber-500/10 text-amber-400 border border-amber-500/20">
+        <i class="fa-solid fa-chart-pie text-lg w-6"></i>
+        <span>Visão Geral</span>
+      </button>
 
-        let allCharacters = [];
+      <button onclick="switchTab('personagens')" id="nav-personagens" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60">
+        <i class="fa-solid fa-users text-lg w-6"></i>
+        <span>Personagens & XP</span>
+      </button>
 
-        // Inicializar Lucide Icons
-        document.addEventListener("DOMContentLoaded", () => {
-            lucide.createIcons();
-            fetchCharactersFromSheet();
+      <button onclick="switchTab('inventario')" id="nav-inventario" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60">
+        <i class="fa-solid fa-boxes-stacked text-lg w-6"></i>
+        <span>Inventário & Carga</span>
+      </button>
+
+      <button onclick="switchTab('compendio')" id="nav-compendio" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60">
+        <i class="fa-solid fa-book-bookmark text-lg w-6"></i>
+        <span>Compêndio & Armas</span>
+      </button>
+
+      <button onclick="switchTab('bestiario')" id="nav-bestiario" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60">
+        <i class="fa-solid fa-dragon text-lg w-6"></i>
+        <span>Bestiário</span>
+      </button>
+
+      <button onclick="switchTab('diario')" id="nav-diario" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60">
+        <i class="fa-solid fa-scroll text-lg w-6"></i>
+        <span>Diário de Aventura</span>
+      </button>
+    </nav>
+
+    <!-- STATUS DE SINCRONIZAÇÃO -->
+    <div class="mt-auto pt-6 border-t border-slate-800/80">
+      <div class="bg-slate-800/50 rounded-xl p-3.5 border border-slate-700/50 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <span id="syncIndicator" class="relative flex h-3 w-3">
+            <span id="syncPing" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span id="syncDot" class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+          </span>
+          <div class="text-xs">
+            <p id="syncStatus" class="font-medium text-slate-300">Modo Local</p>
+            <p id="syncTime" class="text-slate-500 text-[10px]">Não sincronizado</p>
+          </div>
+        </div>
+        <button onclick="forceSync()" title="Sincronizar dados" class="text-slate-400 hover:text-amber-400 transition-colors p-1.5 rounded-lg hover:bg-slate-700/50">
+          <i class="fa-solid fa-rotate text-sm"></i>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ÁREA PRINCIPAL DE CONTEÚDO -->
+  <main class="flex-1 p-4 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-8">
+
+    <!-- CABEÇALHO DE AÇÃO RÁPIDA -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-800">
+      <div>
+        <h2 id="pageTitle" class="font-cinzel text-2xl md:text-3xl font-bold text-slate-100">Visão Geral da Campanha</h2>
+        <p id="pageSubtitle" class="text-slate-400 text-sm mt-1">Estatísticas do grupo e progresso dos aventureiros</p>
+      </div>
+      <div class="flex items-center space-x-3 w-full sm:w-auto">
+        <button onclick="forceSync()" class="w-full sm:w-auto flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-sm font-medium transition-all shadow-sm">
+          <i class="fa-solid fa-cloud-arrow-down text-amber-400"></i>
+          <span>Sincronizar Nuvem</span>
+        </button>
+        <button id="mainAddBtn" onclick="openAddModal()" class="w-full sm:w-auto flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold text-sm transition-all shadow-lg shadow-amber-500/20">
+          <i class="fa-solid fa-plus"></i>
+          <span id="mainAddBtnText">Novo Registo</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= 1. VISÃO GERAL (DASHBOARD) ================= -->
+    <section id="tab-visao-geral" class="tab-content space-y-6">
+      <!-- KPIS / CARDS SUPERIORES -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-slate-800/60 rounded-2xl p-5 border border-slate-700/60 shadow-lg relative overflow-hidden group">
+          <div class="absolute -right-4 -bottom-4 text-slate-700/20 group-hover:text-amber-500/10 transition-colors text-7xl">
+            <i class="fa-solid fa-users"></i>
+          </div>
+          <p class="text-xs font-medium uppercase tracking-wider text-slate-400">Aventureiros</p>
+          <h3 id="kpiTotalHeroes" class="text-3xl font-bold font-cinzel text-amber-400 mt-2">7</h3>
+          <p class="text-xs text-slate-400 mt-2"><span class="text-emerald-400"><i class="fa-solid fa-circle-check"></i> 100%</span> ativos no grupo</p>
+        </div>
+
+        <div class="bg-slate-800/60 rounded-2xl p-5 border border-slate-700/60 shadow-lg relative overflow-hidden group">
+          <div class="absolute -right-4 -bottom-4 text-slate-700/20 group-hover:text-amber-500/10 transition-colors text-7xl">
+            <i class="fa-solid fa-chart-line"></i>
+          </div>
+          <p class="text-xs font-medium uppercase tracking-wider text-slate-400">Nível Médio</p>
+          <h3 id="kpiAvgLevel" class="text-3xl font-bold font-cinzel text-amber-400 mt-2">Nível 5</h3>
+          <p class="text-xs text-slate-400 mt-2">Grau de Ameaça do Grupo</p>
+        </div>
+
+        <div class="bg-slate-800/60 rounded-2xl p-5 border border-slate-700/60 shadow-lg relative overflow-hidden group">
+          <div class="absolute -right-4 -bottom-4 text-slate-700/20 group-hover:text-amber-500/10 transition-colors text-7xl">
+            <i class="fa-solid fa-trophy"></i>
+          </div>
+          <p class="text-xs font-medium uppercase tracking-wider text-slate-400">XP Total Acumulado</p>
+          <h3 id="kpiTotalXP" class="text-3xl font-bold font-cinzel text-amber-400 mt-2">48,300</h3>
+          <p class="text-xs text-slate-400 mt-2">Experiência combinada</p>
+        </div>
+
+        <div class="bg-slate-800/60 rounded-2xl p-5 border border-slate-700/60 shadow-lg relative overflow-hidden group">
+          <div class="absolute -right-4 -bottom-4 text-slate-700/20 group-hover:text-amber-500/10 transition-colors text-7xl">
+            <i class="fa-solid fa-coins"></i>
+          </div>
+          <p class="text-xs font-medium uppercase tracking-wider text-slate-400">Valor em Tesouros</p>
+          <h3 id="kpiTotalGold" class="text-3xl font-bold font-cinzel text-amber-400 mt-2">1,250 PO</h3>
+          <p class="text-xs text-slate-400 mt-2">Estimativa do Inventário</p>
+        </div>
+      </div>
+
+      <!-- PAINEL PRINCIPAL DO DASHBOARD -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- GRÁFICO DE XP DOS PERSONAGENS -->
+        <div class="lg:col-span-2 bg-slate-800/50 rounded-2xl p-5 border border-slate-700/60 shadow-lg flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-cinzel text-lg font-bold text-slate-200">Distribuição de XP por Heroi</h3>
+            <span class="text-xs bg-slate-700/50 text-slate-300 px-3 py-1 rounded-full border border-slate-600/50">Progresso de Nível</span>
+          </div>
+          <div class="h-64 w-full relative">
+            <canvas id="xpChart"></canvas>
+          </div>
+        </div>
+
+        <!-- RESUMO DA CAMPANHA / CARTÕES RÁPIDOS -->
+        <div class="bg-slate-800/50 rounded-2xl p-5 border border-slate-700/60 shadow-lg flex flex-col justify-between space-y-4">
+          <h3 class="font-cinzel text-lg font-bold text-slate-200 border-b border-slate-700/60 pb-3">Resumo da Sociedade</h3>
+          
+          <div id="quickHeroList" class="space-y-3 overflow-y-auto max-h-72 pr-1">
+            <!-- Gerado Dinamicamente -->
+          </div>
+
+          <div class="pt-3 border-t border-slate-700/60 flex justify-between text-xs text-slate-400">
+            <span>Última Sessão: <strong class="text-slate-200">#12 - A Cripta</strong></span>
+            <span>Status: <strong class="text-emerald-400">Em Aventura</strong></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 2. PERSONAGENS & XP ================= -->
+    <section id="tab-personagens" class="tab-content hidden space-y-6">
+      <div class="bg-slate-800/50 rounded-2xl border border-slate-700/60 shadow-lg overflow-hidden">
+        <div class="p-5 border-b border-slate-700/60 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <h3 class="font-cinzel text-lg font-bold text-slate-200">Integrantes da Sociedade RPG</h3>
+          <input type="text" id="searchHero" onkeyup="filterTable('heroTable', this.value)" placeholder="Buscar personagem..." class="w-full sm:w-64 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+        </div>
+        <div class="overflow-x-auto">
+          <table id="heroTable" class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-900/60 text-xs uppercase text-slate-400 font-cinzel">
+              <tr>
+                <th class="px-6 py-4">Nome</th>
+                <th class="px-6 py-4">Classe & Raça</th>
+                <th class="px-6 py-4 text-center">Nível</th>
+                <th class="px-6 py-4">Progresso de XP</th>
+                <th class="px-6 py-4 text-center">Status</th>
+                <th class="px-6 py-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="heroTableBody" class="divide-y divide-slate-800/60">
+              <!-- Renderizado dinamicamente -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 3. INVENTÁRIO & CARGA ================= -->
+    <section id="tab-inventario" class="tab-content hidden space-y-6">
+      <div class="bg-slate-800/50 rounded-2xl border border-slate-700/60 shadow-lg overflow-hidden">
+        <div class="p-5 border-b border-slate-700/60 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <h3 class="font-cinzel text-lg font-bold text-slate-200">Itens e Tesouros do Grupo</h3>
+          <input type="text" id="searchInventory" onkeyup="filterTable('inventoryTable', this.value)" placeholder="Buscar no inventário..." class="w-full sm:w-64 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+        </div>
+        <div class="overflow-x-auto">
+          <table id="inventoryTable" class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-900/60 text-xs uppercase text-slate-400 font-cinzel">
+              <tr>
+                <th class="px-6 py-4">Item</th>
+                <th class="px-6 py-4">Possuidor</th>
+                <th class="px-6 py-4 text-center">Qtd</th>
+                <th class="px-6 py-4 text-center">Peso Un. (Kg)</th>
+                <th class="px-6 py-4">Raridade</th>
+                <th class="px-6 py-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryTableBody" class="divide-y divide-slate-800/60">
+              <!-- Renderizado dinamicamente -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 4. COMPÊNDIO & ARMAS ================= -->
+    <section id="tab-compendio" class="tab-content hidden space-y-6">
+      <div class="bg-slate-800/50 rounded-2xl border border-slate-700/60 shadow-lg overflow-hidden">
+        <div class="p-5 border-b border-slate-700/60 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <h3 class="font-cinzel text-lg font-bold text-slate-200">Arsenal & Equipamentos do Sistema</h3>
+          <input type="text" id="searchWeapon" onkeyup="filterTable('weaponTable', this.value)" placeholder="Buscar armas/itens..." class="w-full sm:w-64 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+        </div>
+        <div class="overflow-x-auto">
+          <table id="weaponTable" class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-900/60 text-xs uppercase text-slate-400 font-cinzel">
+              <tr>
+                <th class="px-6 py-4">Nome do Item</th>
+                <th class="px-6 py-4">Tipo</th>
+                <th class="px-6 py-4 text-center">Dano / Defesa</th>
+                <th class="px-6 py-4 text-center">Preço</th>
+                <th class="px-6 py-4">Propriedades</th>
+                <th class="px-6 py-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="weaponTableBody" class="divide-y divide-slate-800/60">
+              <!-- Renderizado dinamicamente -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 5. BESTIÁRIO ================= -->
+    <section id="tab-bestiario" class="tab-content hidden space-y-6">
+      <div class="bg-slate-800/50 rounded-2xl border border-slate-700/60 shadow-lg overflow-hidden">
+        <div class="p-5 border-b border-slate-700/60 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <h3 class="font-cinzel text-lg font-bold text-slate-200">Monstros e Ameaças Conocidas</h3>
+          <input type="text" id="searchBestiary" onkeyup="filterTable('bestiaryTable', this.value)" placeholder="Buscar monstro..." class="w-full sm:w-64 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+        </div>
+        <div class="overflow-x-auto">
+          <table id="bestiaryTable" class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-900/60 text-xs uppercase text-slate-400 font-cinzel">
+              <tr>
+                <th class="px-6 py-4">Monstro</th>
+                <th class="px-6 py-4">Tipo & Tamanho</th>
+                <th class="px-6 py-4 text-center">ND (Nível)</th>
+                <th class="px-6 py-4 text-center">CA / PV</th>
+                <th class="px-6 py-4">Atributo Destaque</th>
+                <th class="px-6 py-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="bestiaryTableBody" class="divide-y divide-slate-800/60">
+              <!-- Renderizado dinamicamente -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 6. DIÁRIO DE AVENTURA ================= -->
+    <section id="tab-diario" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- LISTA DE ANOTAÇÕES/SESSÕES -->
+        <div class="lg:col-span-1 bg-slate-800/50 rounded-2xl border border-slate-700/60 p-4 space-y-3">
+          <h3 class="font-cinzel text-md font-bold text-slate-200 border-b border-slate-700/60 pb-2">Capítulos e Sessões</h3>
+          <div id="journalEntriesList" class="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+            <!-- Renderizado dinamicamente -->
+          </div>
+        </div>
+
+        <!-- DETALHES DA ANOTAÇÃO SELECIONADA -->
+        <div class="lg:col-span-2 bg-slate-800/50 rounded-2xl border border-slate-700/60 p-6 flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-start border-b border-slate-700/60 pb-4 mb-4">
+              <div>
+                <span id="journalDetailTag" class="text-xs bg-amber-500/20 text-amber-400 px-3 py-1 rounded-full font-semibold uppercase">Lore / Missão</span>
+                <h3 id="journalDetailTitle" class="font-cinzel text-2xl font-bold text-amber-400 mt-2">A Cripta dos Reis Esquecidos</h3>
+                <p id="journalDetailDate" class="text-xs text-slate-400 mt-1"><i class="fa-regular fa-calendar"></i> Sessão de 14 de Outubro</p>
+              </div>
+              <div class="flex space-x-2">
+                <button onclick="editJournalEntry()" class="text-slate-400 hover:text-amber-400 p-2"><i class="fa-solid fa-pen-to-square"></i></button>
+                <button onclick="deleteJournalEntry()" class="text-slate-400 hover:text-rose-400 p-2"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            </div>
+            <div id="journalDetailContent" class="text-slate-300 space-y-4 text-sm leading-relaxed whitespace-pre-line">
+              Selecione uma anotação do diário à esquerda para visualizar todos os detalhes, pistas e informações descritas pelo Mestre.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= MODAL DE ADIÇÃO / EDIÇÃO ================= -->
+  <div id="formModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl transform transition-all">
+      <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
+        <h3 id="modalTitle" class="font-cinzel text-lg font-bold text-amber-400">Adicionar Registo</h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-200">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+
+      <form id="modalForm" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4">
+        <input type="hidden" id="modalEditIndex" value="-1">
+        <div id="modalFields" class="space-y-4">
+          <!-- Campos Injetados Dinamicamente consoante a aba -->
+        </div>
+
+        <div class="pt-4 border-t border-slate-800 flex justify-end space-x-3">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm font-medium hover:bg-slate-700">Cancelar</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold text-sm transition-all shadow-lg shadow-amber-500/20">Salvar Dados</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= LÓGICA JAVASCRIPT ================= -->
+  <script>
+    // === DADOS DE FALLBACK DA PLANILHA (SOCIEDADE RPG / XP) ===
+    const DEFAULT_DATA = {
+      personagens: [
+        { id: 1, nome: "Arakanis", classe: "Ladino", raca: "Elfo", nivel: 5, xp: 6800, status: "Ativo" },
+        { id: 2, nome: "Audric", classe: "Paladino", raca: "Humano", nivel: 6, xp: 7500, status: "Ativo" },
+        { id: 3, nome: "Lud", classe: "Bárbaro", raca: "Meio-Orc", nivel: 5, xp: 6400, status: "Ativo" },
+        { id: 4, nome: "Lulu", classe: "Clériga", raca: "Anã", nivel: 5, xp: 6900, status: "Ativo" },
+        { id: 5, nome: "Lurid", classe: "Mago", raca: "Gnomo", nivel: 6, xp: 7800, status: "Ativo" },
+        { id: 6, nome: "Rianna", classe: "Patrulheira", raca: "Meio-Elfa", nivel: 5, xp: 6500, status: "Ativo" },
+        { id: 7, nome: "Shion", classe: "Monge", raca: "Humano", nivel: 5, xp: 6400, status: "Ativo" }
+      ],
+      inventario: [
+        { id: 1, item: "Poção de Cura Maior", possuidor: "Lulu", qtd: 4, peso: 0.2, raridade: "Incomum" },
+        { id: 2, item: "Pergaminho de Bola de Fogo", possuidor: "Lurid", qtd: 2, peso: 0.1, raridade: "Raro" },
+        { id: 3, item: "Corda de Canto (15m)", possuidor: "Arakanis", qtd: 1, peso: 5.0, raridade: "Comum" },
+        { id: 4, item: "Gema de Rubi Sagrado", possuidor: "Audric", qtd: 1, peso: 0.1, raridade: "Muito Raro" }
+      ],
+      compendio: [
+        { id: 1, nome: "Espada Longa +1", tipo: "Arma Marcial", dano: "1d8+1 Cortante", preco: "500 PO", propriedades: "Versátil (1d10)" },
+        { id: 2, nome: "Arco Longo de Prata", tipo: "Arma à Distância", dano: "1d8 Perfurante", preco: "300 PO", propriedades: "Munição, Distância (45/180)" },
+        { id: 3, nome: "Escudo de Adamante", tipo: "Armadura / Escudo", dano: "+2 CA", preco: "750 PO", propriedades: "Anula Acertos Críticos" }
+      ],
+      bestiario: [
+        { id: 1, monstro: "Gargula de Pedra", tipo: "Monstruosidade (Média)", nd: "2", ca_pv: "15 CA / 52 PV", destaque: "Resistência a Dano Físico" },
+        { id: 2, monstro: "Devorador de Mentes", tipo: "Aberração (Média)", nd: "7", ca_pv: "15 CA / 71 PV", destaque: "Explosão Psíquica" },
+        { id: 3, monstro: "Dragão Jovem de Fogo", tipo: "Dragão (Grande)", nd: "10", ca_pv: "18 CA / 178 PV", destaque: "Sopro de Fogo (16d6)" }
+      ],
+      diario: [
+        { id: 1, titulo: "A Cripta dos Reis Esquecidos", data: "14/10/2026", tag: "Missão Principal", conteudo: "O grupo adentrou a antiga cripta sob o vale sob nevoeiro. Arakanis desarmou a armadilha de lâminas no corredor inicial, permitindo a passagem segura. Encontramos inscrições antigas falando de uma relíquia solar." },
+        { id: 2, titulo: "O Pacto da Floresta Sombria", data: "02/10/2026", tag: "Lore", conteudo: "Encontro com os druidas do círculo prateado. Audric prometeu proteção contra as incursões dos orcs da montanha em troca de suprimentos e elixires." }
+      ]
+    };
+
+    // ESTADO DA APLICAÇÃO
+    let appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    let activeTab = 'visao-geral';
+    let selectedJournalIndex = 0;
+    let chartInstance = null;
+
+    // === INICIALIZAÇÃO ===
+    window.addEventListener('DOMContentLoaded', () => {
+      initApp();
+      setupMobileMenu();
+    });
+
+    async function initApp() {
+      // Tentar carregar da nuvem se a API_URL estiver configurada
+      if (API_URL && API_URL !== "SUA_URL_DO_APPS_SCRIPT_AQUI") {
+        await loadFromCloud();
+      } else {
+        updateSyncStatus('local', 'Sem URL de API');
+      }
+      renderCurrentTab();
+    }
+
+    // === REQUISIÇÕES ASSÍNCRONAS DA NUVEM (GOOGLE APPS SCRIPT) ===
+    async function loadFromCloud() {
+      updateSyncStatus('syncing', 'Buscando dados...');
+      try {
+        const response = await fetch(`${API_URL}?action=getAll`);
+        if (!response.ok) throw new Error("Falha na rede");
+        const data = await response.json();
+        
+        if (data && data.personagens) {
+          appData = data;
+          updateSyncStatus('online', 'Sincronizado');
+          renderCurrentTab();
+        } else {
+          throw new Error("Estrutura inválida");
+        }
+      } catch (err) {
+        console.warn("Usando dados de fallback locais devido a:", err);
+        updateSyncStatus('local', 'Modo Offline / Fallback');
+      }
+    }
+
+    async function saveToCloud(action, sheetName, payload) {
+      if (!API_URL || API_URL === "SUA_URL_DO_APPS_SCRIPT_AQUI") return;
+      
+      updateSyncStatus('syncing', 'Enviando alterações...');
+      try {
+        await fetch(API_URL, {
+          method: 'POST',
+          mode: 'no-cors', // Evita restrições estritas de CORS do Apps Script
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, sheet: sheetName, data: payload })
         });
+        setTimeout(() => updateSyncStatus('online', 'Sincronizado'), 1200);
+      } catch (err) {
+        console.error("Erro ao sincronizar:", err);
+        updateSyncStatus('local', 'Erro na sincronização');
+      }
+    }
 
-        // Buscar dados da planilha na Nuvem (Google Sheets)
-        async function fetchCharactersFromSheet() {
-            const refreshIcon = document.getElementById("refreshIcon");
-            if (refreshIcon) refreshIcon.classList.add("animate-spin");
+    function forceSync() {
+      loadFromCloud();
+    }
 
-            if (API_URL === "SUA_URL_DO_APPS_SCRIPT_AQUI" || !API_URL) {
-                showBanner("Por favor, cole a URL do seu Google Apps Script na variável API_URL do código.", "warning");
-                if (refreshIcon) refreshIcon.classList.remove("animate-spin");
-                return;
-            }
+    function updateSyncStatus(state, message) {
+      const ping = document.getElementById('syncPing');
+      const dot = document.getElementById('syncDot');
+      const status = document.getElementById('syncStatus');
+      const time = document.getElementById('syncTime');
 
-            try {
-                const response = await fetch(`${API_URL}?sheet=Personagens`);
-                const data = await response.json();
+      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-                if (Array.isArray(data)) {
-                    allCharacters = data.map((item, index) => ({
-                        id: index + 1,
-                        name: item["Nome do Personagem"] || item["Nome"] || "Sem Nome",
-                        race: item["Raça / Especie"] || item["Raça"] || "-",
-                        class: item["Classe"] || "-",
-                        xp: Number(item["XP Atual"] || item["XP"] || 0),
-                        level: Number(item["Nível Atual"] || item["Nível"] || 1),
-                        str: Number(item["Força"] || 10)
-                    }));
+      if (state === 'online') {
+        ping.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75';
+        dot.className = 'relative inline-flex rounded-full h-3 w-3 bg-emerald-500';
+        status.innerText = 'Conectado à Nuvem';
+      } else if (state === 'syncing') {
+        ping.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75';
+        dot.className = 'relative inline-flex rounded-full h-3 w-3 bg-amber-500';
+        status.innerText = 'Sincronizando...';
+      } else {
+        ping.className = 'hidden';
+        dot.className = 'relative inline-flex rounded-full h-3 w-3 bg-slate-500';
+        status.innerText = 'Modo Local';
+      }
+      time.innerText = message + ` (${now})`;
+    }
 
-                    renderCharacters(allCharacters);
-                    updateDashboard(allCharacters);
-                    showBanner("Dados sincronizados com a nuvem com sucesso!", "success");
-                } else {
-                    showBanner("Erro ao formatar os dados recebidos da planilha.", "error");
-                }
-            } catch (error) {
-                console.error("Erro na requisição:", error);
-                showBanner("Erro ao conectar à planilha na nuvem.", "error");
-            } finally {
-                if (refreshIcon) refreshIcon.classList.remove("animate-spin");
-            }
+    // === NAVEGAÇÃO ENTRE ABAS ===
+    function switchTab(tabId) {
+      activeTab = tabId;
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.remove('bg-amber-500/10', 'text-amber-400', 'border', 'border-amber-500/20');
+        el.classList.add('text-slate-400');
+      });
+
+      const targetTab = document.getElementById(`tab-${tabId}`);
+      if (targetTab) targetTab.classList.remove('hidden');
+
+      const activeNav = document.getElementById(`nav-${tabId}`);
+      if (activeNav) {
+        activeNav.classList.remove('text-slate-400');
+        activeNav.classList.add('bg-amber-500/10', 'text-amber-400', 'border', 'border-amber-500/20');
+      }
+
+      // Atualizar títulos do topo
+      const titleMap = {
+        'visao-geral': ['Visão Geral da Campanha', 'Estatísticas do grupo e progresso dos aventureiros'],
+        'personagens': ['Personagens & Experiência', 'Gestão das fichas e evolução da Sociedade RPG'],
+        'inventario': ['Inventário & Carga', 'Controle dos itens, poções e relíquias do grupo'],
+        'compendio': ['Compêndio & Armas', 'Lista de equipamentos e dados técnicos do sistema'],
+        'bestiario': ['Bestiário da Campanha', 'Ameaças e monstros já enfrentados pelo grupo'],
+        'diario': ['Diário de Aventura', 'Histórico das sessões, lore e missões ativas']
+      };
+
+      if (titleMap[tabId]) {
+        document.getElementById('pageTitle').innerText = titleMap[tabId][0];
+        document.getElementById('pageSubtitle').innerText = titleMap[tabId][1];
+      }
+
+      // Fechar menu mobile ao clicar em uma aba
+      document.getElementById('sidebar').classList.add('hidden');
+
+      renderCurrentTab();
+    }
+
+    function renderCurrentTab() {
+      if (activeTab === 'visao-geral') renderDashboard();
+      if (activeTab === 'personagens') renderPersonagens();
+      if (activeTab === 'inventario') renderInventario();
+      if (activeTab === 'compendio') renderCompendio();
+      if (activeTab === 'bestiario') renderBestiario();
+      if (activeTab === 'diario') renderDiario();
+    }
+
+    // === 1. RENDERIZAR VISÃO GERAL ===
+    function renderDashboard() {
+      const heroes = appData.personagens || [];
+      const totalXP = heroes.reduce((acc, h) => acc + Number(h.xp || 0), 0);
+      const avgLevel = heroes.length ? (heroes.reduce((acc, h) => acc + Number(h.nivel || 0), 0) / heroes.length).toFixed(1) : 0;
+
+      document.getElementById('kpiTotalHeroes').innerText = heroes.length;
+      document.getElementById('kpiAvgLevel').innerText = `Nível ${avgLevel}`;
+      document.getElementById('kpiTotalXP').innerText = totalXP.toLocaleString('pt-BR');
+
+      // Resumo lateral de heróis
+      const listEl = document.getElementById('quickHeroList');
+      listEl.innerHTML = heroes.map(h => `
+        <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-700/40">
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs font-cinzel">
+              ${h.nome.substring(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <p class="font-medium text-slate-200 text-sm">${h.nome}</p>
+              <p class="text-[11px] text-slate-400">${h.classe} (${h.raca})</p>
+            </div>
+          </div>
+          <span class="text-xs bg-slate-800 text-amber-400 font-bold px-2 py-1 rounded-md border border-slate-700">Nvl ${h.nivel}</span>
+        </div>
+      `).join('');
+
+      // Gráfico de Barras Chart.js
+      const ctx = document.getElementById('xpChart').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: heroes.map(h => h.nome),
+          datasets: [{
+            label: 'XP do Personagem',
+            data: heroes.map(h => h.xp),
+            backgroundColor: '#f59e0b',
+            borderRadius: 6,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
+            x: { ticks: { color: '#cbd5e1' }, grid: { display: false } }
+          }
         }
+      });
+    }
 
-        // Renderizar Tabela
-        function renderCharacters(characters) {
-            const tbody = document.getElementById("characterTableBody");
-            
-            if (characters.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center py-8 text-slate-500">
-                            Nenhum personagem encontrado na planilha.
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
+    // === 2. RENDERIZAR PERSONAGENS ===
+    function renderPersonagens() {
+      const tbody = document.getElementById('heroTableBody');
+      tbody.innerHTML = (appData.personagens || []).map((h, i) => `
+        <tr class="hover:bg-slate-800/30 transition-colors">
+          <td class="px-6 py-4 font-semibold text-slate-100 flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-xs font-bold font-cinzel">
+              ${h.nome.substring(0,2)}
+            </div>
+            <span>${h.nome}</span>
+          </td>
+          <td class="px-6 py-4">${h.classe} <span class="text-xs text-slate-500">(${h.raca})</span></td>
+          <td class="px-6 py-4 text-center font-bold text-amber-400">${h.nivel}</td>
+          <td class="px-6 py-4">
+            <div class="w-full bg-slate-900 rounded-full h-2 mb-1 border border-slate-700">
+              <div class="bg-amber-500 h-2 rounded-full" style="width: ${Math.min((h.xp / 10000) * 100, 100)}%"></div>
+            </div>
+            <span class="text-[11px] text-slate-400">${h.xp} XP</span>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <span class="px-2.5 py-1 text-xs rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">${h.status || 'Ativo'}</span>
+          </td>
+          <td class="px-6 py-4 text-right space-x-2">
+            <button onclick="openEditModal('personagens', ${i})" class="text-slate-400 hover:text-amber-400"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="deleteEntry('personagens', ${i})" class="text-slate-400 hover:text-rose-400"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
 
-            tbody.innerHTML = characters.map(c => `
-                <tr class="hover:bg-slate-700/30 transition">
-                    <td class="py-3.5 px-4 font-semibold text-indigo-300">${escapeHtml(c.name)}</td>
-                    <td class="py-3.5 px-4">${escapeHtml(c.race)}</td>
-                    <td class="py-3.5 px-4">${escapeHtml(c.class)}</td>
-                    <td class="py-3.5 px-4">
-                        <span class="px-2.5 py-1 text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full">
-                            Nível ${c.level}
-                        </span>
-                    </td>
-                    <td class="py-3.5 px-4 font-mono">${c.xp.toLocaleString()} XP</td>
-                    <td class="py-3.5 px-4">${c.str}</td>
-                </tr>
-            `).join('');
+    // === 3. RENDERIZAR INVENTÁRIO ===
+    function renderInventario() {
+      const tbody = document.getElementById('inventoryTableBody');
+      tbody.innerHTML = (appData.inventario || []).map((item, i) => `
+        <tr class="hover:bg-slate-800/30 transition-colors">
+          <td class="px-6 py-4 font-medium text-slate-200">${item.item}</td>
+          <td class="px-6 py-4 text-slate-400">${item.possuidor}</td>
+          <td class="px-6 py-4 text-center font-bold text-slate-200">${item.qtd}</td>
+          <td class="px-6 py-4 text-center text-slate-400">${item.peso} Kg</td>
+          <td class="px-6 py-4"><span class="px-2.5 py-1 text-xs rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">${item.raridade}</span></td>
+          <td class="px-6 py-4 text-right space-x-2">
+            <button onclick="openEditModal('inventario', ${i})" class="text-slate-400 hover:text-amber-400"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="deleteEntry('inventario', ${i})" class="text-slate-400 hover:text-rose-400"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // === 4. RENDERIZAR COMPÊNDIO ===
+    function renderCompendio() {
+      const tbody = document.getElementById('weaponTableBody');
+      tbody.innerHTML = (appData.compendio || []).map((w, i) => `
+        <tr class="hover:bg-slate-800/30 transition-colors">
+          <td class="px-6 py-4 font-medium text-amber-400">${w.nome}</td>
+          <td class="px-6 py-4 text-slate-400">${w.tipo}</td>
+          <td class="px-6 py-4 text-center font-bold text-slate-200">${w.dano}</td>
+          <td class="px-6 py-4 text-center text-amber-400">${w.preco}</td>
+          <td class="px-6 py-4 text-xs text-slate-400">${w.propriedades}</td>
+          <td class="px-6 py-4 text-right space-x-2">
+            <button onclick="openEditModal('compendio', ${i})" class="text-slate-400 hover:text-amber-400"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="deleteEntry('compendio', ${i})" class="text-slate-400 hover:text-rose-400"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // === 5. RENDERIZAR BESTIÁRIO ===
+    function renderBestiario() {
+      const tbody = document.getElementById('bestiaryTableBody');
+      tbody.innerHTML = (appData.bestiario || []).map((m, i) => `
+        <tr class="hover:bg-slate-800/30 transition-colors">
+          <td class="px-6 py-4 font-bold text-slate-100">${m.monstro}</td>
+          <td class="px-6 py-4 text-slate-400 text-xs">${m.tipo}</td>
+          <td class="px-6 py-4 text-center font-bold text-rose-400">ND ${m.nd}</td>
+          <td class="px-6 py-4 text-center text-slate-300">${m.ca_pv}</td>
+          <td class="px-6 py-4 text-xs text-slate-400">${m.destaque}</td>
+          <td class="px-6 py-4 text-right space-x-2">
+            <button onclick="openEditModal('bestiario', ${i})" class="text-slate-400 hover:text-amber-400"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="deleteEntry('bestiario', ${i})" class="text-slate-400 hover:text-rose-400"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // === 6. RENDERIZAR DIÁRIO ===
+    function renderDiario() {
+      const listEl = document.getElementById('journalEntriesList');
+      const entries = appData.diario || [];
+
+      if (entries.length === 0) {
+        listEl.innerHTML = `<p class="text-xs text-slate-500 italic p-3">Nenhuma anotação registada.</p>`;
+        return;
+      }
+
+      listEl.innerHTML = entries.map((entry, i) => `
+        <button onclick="selectJournalEntry(${i})" class="w-full text-left p-3 rounded-xl border transition-all ${i === selectedJournalIndex ? 'bg-amber-500/10 border-amber-500/40 text-slate-100' : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:bg-slate-800/40'}">
+          <p class="font-bold text-sm text-amber-400 truncate">${entry.titulo}</p>
+          <div class="flex justify-between items-center mt-2 text-[11px]">
+            <span>${entry.data}</span>
+            <span class="bg-slate-800 px-2 py-0.5 rounded text-slate-400">${entry.tag}</span>
+          </div>
+        </button>
+      `).join('');
+
+      // Mostrar o selecionado
+      const cur = entries[selectedJournalIndex] || entries[0];
+      if (cur) {
+        document.getElementById('journalDetailTitle').innerText = cur.titulo;
+        document.getElementById('journalDetailDate').innerHTML = `<i class="fa-regular fa-calendar"></i> Sessão / Data: ${cur.data}`;
+        document.getElementById('journalDetailTag').innerText = cur.tag;
+        document.getElementById('journalDetailContent').innerText = cur.conteudo;
+      }
+    }
+
+    function selectJournalEntry(index) {
+      selectedJournalIndex = index;
+      renderDiario();
+    }
+
+    // === SISTEMA DE MODAIS DINÂMICOS PARA CRUD ===
+    function openAddModal() {
+      document.getElementById('modalEditIndex').value = "-1";
+      document.getElementById('modalTitle').innerText = `Novo Registro (${activeTab})`;
+      buildModalFields(activeTab);
+      document.getElementById('formModal').classList.remove('hidden');
+    }
+
+    function openEditModal(tab, index) {
+      document.getElementById('modalEditIndex').value = index;
+      document.getElementById('modalTitle').innerText = `Editar Registo`;
+      buildModalFields(tab, appData[tab][index]);
+      document.getElementById('formModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('formModal').classList.add('hidden');
+    }
+
+    function buildModalFields(tab, existingData = {}) {
+      const container = document.getElementById('modalFields');
+      container.innerHTML = '';
+
+      const fieldsMap = {
+        'personagens': [
+          { id: 'nome', label: 'Nome do Personagem', type: 'text' },
+          { id: 'classe', label: 'Classe', type: 'text' },
+          { id: 'raca', label: 'Raça', type: 'text' },
+          { id: 'nivel', label: 'Nível', type: 'number' },
+          { id: 'xp', label: 'Pontos de Experiência (XP)', type: 'number' },
+          { id: 'status', label: 'Status (Ativo/Inativo)', type: 'text' }
+        ],
+        'inventario': [
+          { id: 'item', label: 'Nome do Item', type: 'text' },
+          { id: 'possuidor', label: 'Possuidor', type: 'text' },
+          { id: 'qtd', label: 'Quantidade', type: 'number' },
+          { id: 'peso', label: 'Peso Un. (Kg)', type: 'number', step: '0.1' },
+          { id: 'raridade', label: 'Raridade', type: 'text' }
+        ],
+        'compendio': [
+          { id: 'nome', label: 'Nome do Equipamento', type: 'text' },
+          { id: 'tipo', label: 'Tipo', type: 'text' },
+          { id: 'dano', label: 'Dano / Defesa', type: 'text' },
+          { id: 'preco', label: 'Preço (PO)', type: 'text' },
+          { id: 'propriedades', label: 'Propriedades', type: 'text' }
+        ],
+        'bestiario': [
+          { id: 'monstro', label: 'Nome do Monstro', type: 'text' },
+          { id: 'tipo', label: 'Tipo / Tamanho', type: 'text' },
+          { id: 'nd', label: 'Nível de Dificuldade (ND)', type: 'text' },
+          { id: 'ca_pv', label: 'CA / Pontos de Vida (PV)', type: 'text' },
+          { id: 'destaque', label: 'Atributo Destaque', type: 'text' }
+        ],
+        'diario': [
+          { id: 'titulo', label: 'Título do Capítulo', type: 'text' },
+          { id: 'data', label: 'Data / Sessão', type: 'text' },
+          { id: 'tag', label: 'Categoria / Tag', type: 'text' },
+          { id: 'conteudo', label: 'Conteúdo do Diário', type: 'textarea' }
+        ]
+      };
+
+      const fields = fieldsMap[tab] || fieldsMap['personagens'];
+
+      fields.forEach(f => {
+        const val = existingData[f.id] !== undefined ? existingData[f.id] : '';
+        if (f.type === 'textarea') {
+          container.innerHTML += `
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">${f.label}</label>
+              <textarea id="field_${f.id}" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500">${val}</textarea>
+            </div>
+          `;
+        } else {
+          container.innerHTML += `
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">${f.label}</label>
+              <input type="${f.type}" step="${f.step || '1'}" id="field_${f.id}" value="${val}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+            </div>
+          `;
         }
+      });
+    }
 
-        // Atualizar Métricas / KPIs
-        function updateDashboard(characters) {
-            const total = characters.length;
-            const totalXP = characters.reduce((acc, c) => acc + c.xp, 0);
-            const avgLevel = total > 0 ? (characters.reduce((acc, c) => acc + c.level, 0) / total).toFixed(1) : 0;
-            const maxLevel = total > 0 ? Math.max(...characters.map(c => c.level)) : "-";
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const editIndex = parseInt(document.getElementById('modalEditIndex').value);
+      const targetTab = activeTab === 'visao-geral' ? 'personagens' : activeTab;
 
-            document.getElementById("kpiTotal").innerText = total;
-            document.getElementById("kpiTotalXP").innerText = totalXP.toLocaleString();
-            document.getElementById("kpiAvgLevel").innerText = avgLevel;
-            document.getElementById("kpiMaxLevel").innerText = maxLevel;
-        }
+      const newObj = {};
+      document.querySelectorAll('[id^="field_"]').forEach(input => {
+        const key = input.id.replace('field_', '');
+        newObj[key] = input.value;
+      });
 
-        // Enviar Novo Personagem para a Nuvem
-        async function handleFormSubmit(e) {
-            e.preventDefault();
-            const saveBtn = document.getElementById("saveBtn");
-            saveBtn.disabled = true;
-            saveBtn.innerText = "Salvando na Nuvem...";
+      if (!appData[targetTab]) appData[targetTab] = [];
 
-            const payload = {
-                sheet: "Personagens",
-                action: "add",
-                data: {
-                    "Nome do Personagem": document.getElementById("formName").value,
-                    "Raça / Especie": document.getElementById("formRace").value,
-                    "Classe": document.getElementById("formClass").value,
-                    "XP Atual": Number(document.getElementById("formXP").value),
-                    "Nível Atual": Number(document.getElementById("formLevel").value),
-                    "Força": Number(document.getElementById("formStr").value)
-                }
-            };
+      if (editIndex >= 0) {
+        appData[targetTab][editIndex] = newObj;
+        saveToCloud('edit', targetTab, newObj);
+      } else {
+        appData[targetTab].push(newObj);
+        saveToCloud('add', targetTab, newObj);
+      }
 
-            try {
-                await fetch(API_URL, {
-                    method: "POST",
-                    body: JSON.stringify(payload)
-                });
+      closeModal();
+      renderCurrentTab();
+    }
 
-                closeModal();
-                document.getElementById("addCharacterForm").reset();
-                await fetchCharactersFromSheet(); // Recarrega da nuvem
-            } catch (err) {
-                console.error("Erro ao salvar:", err);
-                showBanner("Erro ao salvar o personagem na planilha.", "error");
-            } finally {
-                saveBtn.disabled = false;
-                saveBtn.innerText = "Salvar na Nuvem";
-            }
-        }
+    function deleteEntry(tab, index) {
+      if (confirm('Tem certeza que deseja excluir este registo?')) {
+        const deleted = appData[tab].splice(index, 1);
+        saveToCloud('delete', tab, deleted[0]);
+        renderCurrentTab();
+      }
+    }
 
-        // Filtro de Busca
-        function filterCharacters() {
-            const query = document.getElementById("searchInput").value.toLowerCase();
-            const filtered = allCharacters.filter(c => 
-                c.name.toLowerCase().includes(query) ||
-                c.race.toLowerCase().includes(query) ||
-                c.class.toLowerCase().includes(query)
-            );
-            renderCharacters(filtered);
-        }
+    function editJournalEntry() {
+      openEditModal('diario', selectedJournalIndex);
+    }
 
-        // Modais e Utilitários UI
-        function openModal() {
-            document.getElementById("characterModal").classList.remove("hidden");
-            document.getElementById("characterModal").classList.add("flex");
-        }
+    function deleteJournalEntry() {
+      deleteEntry('diario', selectedJournalIndex);
+      selectedJournalIndex = 0;
+    }
 
-        function closeModal() {
-            document.getElementById("characterModal").classList.add("hidden");
-            document.getElementById("characterModal").classList.remove("flex");
-        }
+    // === FILTRO DE BUSCA PARA TABELAS ===
+    function filterTable(tableId, query) {
+      const q = query.toLowerCase();
+      const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+      });
+    }
 
-        function showBanner(msg, type) {
-            const banner = document.getElementById("statusBanner");
-            const text = document.getElementById("statusMessage");
-
-            banner.classList.remove("hidden", "bg-emerald-500/10", "border-emerald-500/30", "text-emerald-400", "bg-amber-500/10", "border-amber-500/30", "text-amber-400", "bg-rose-500/10", "border-rose-500/30", "text-rose-400");
-
-            if (type === "success") {
-                banner.classList.add("bg-emerald-500/10", "border-emerald-500/30", "text-emerald-400");
-            } else if (type === "warning") {
-                banner.classList.add("bg-amber-500/10", "border-amber-500/30", "text-amber-400");
-            } else {
-                banner.classList.add("bg-rose-500/10", "border-rose-500/30", "text-rose-400");
-            }
-
-            text.innerText = msg;
-            
-            // Oculta automaticamente após 5 segundos se for mensagem de sucesso
-            if (type === "success") {
-                setTimeout(() => banner.classList.add("hidden"), 5000);
-            }
-        }
-
-        function escapeHtml(str) {
-            return String(str).replace(/[&<>"']/g, match => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-            }[match]));
-        }
-    </script>
+    // === MENU MOBILE LEVE ===
+    function setupMobileMenu() {
+      const btn = document.getElementById('mobileMenuBtn');
+      const sidebar = document.getElementById('sidebar');
+      btn.addEventListener('click', () => {
+        sidebar.classList.toggle('hidden');
+      });
+    }
+  </script>
 </body>
 </html>
