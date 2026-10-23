@@ -1,1159 +1,344 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Sociedade RPG</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel - Sociedade RPG</title>
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        rpg: {
-                            dark: '#0d0f17',
-                            panel: '#161926',
-                            border: '#2a2e45',
-                            gold: '#d4af37',
-                            goldlight: '#f3e5ab',
-                            accent: '#e63946',
-                            highlight: '#3a86ff'
-                        }
-                    },
-                    fontFamily: {
-                        cinzel: ['Cinzel', 'serif'],
-                        sans: ['Inter', 'sans-serif']
-                    }
-                }
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0284c7',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+              950: '#082f49',
+            },
+            rpg: {
+              gold: '#f59e0b',
+              dark: '#0f172a',
+              card: '#1e293b',
+              border: '#334155',
+              accent: '#8b5cf6'
             }
+          }
         }
-    </script>
-    <style>
-        body {
-            background-color: #0d0f17;
-            color: #e2e8f0;
-            font-family: 'Inter', sans-serif;
-        }
-        .font-cinzel { font-family: 'Cinzel', serif; }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #161926;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #2a2e45;
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #d4af37;
-        }
-    </style>
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #090d16;
+      color: #f1f5f9;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .rpg-card {
+      background-color: #111827;
+      border: 1px solid #1f2937;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+  </style>
 </head>
-<body class="min-h-screen flex flex-col custom-scrollbar">
+<body class="min-h-screen flex flex-col justify-between">
 
-    <!-- Configuração da URL da API do Google Apps Script -->
-    <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbwXawHTnSvXfzmknyl07Wo1dEebg-XvcIOshtxLi-I0hF-S49zodxaal24JZByt068DsA/exec";
-    </script>
-
-    <!-- Header / Navbar Principal -->
-    <header class="bg-rpg-panel border-b border-rpg-border sticky top-0 z-40 shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-20">
-                <!-- Logotipo / Título -->
-                <div class="flex items-center space-x-3">
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-md shadow-amber-500/20 border border-amber-400/30">
-                        <i class="fa-solid font-bold text-2xl text-slate-950 fa-shield-halved"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-2xl font-bold font-cinzel text-rpg-gold tracking-wider">SOCIEDADE RPG</h1>
-                        <p class="text-xs text-slate-400 flex items-center gap-1">
-                            <span id="syncStatusDot" class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-                            <span id="syncStatusText">Conectado ao Google Sheets</span>
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Botão de Sincronização Manual -->
-                <button onclick="fetchDataFromSheet()" class="flex items-center gap-2 bg-rpg-border hover:bg-slate-700 text-rpg-goldlight px-4 py-2 rounded-lg border border-rpg-border transition text-sm font-medium">
-                    <i class="fa-solid fa-rotate" id="refreshIcon"></i>
-                    <span class="hidden sm:inline">Sincronizar</span>
-                </button>
-            </div>
-
-            <!-- Navegação por Abas -->
-            <nav class="flex space-x-1 sm:space-x-4 overflow-x-auto custom-scrollbar pb-2 text-sm font-medium border-t border-slate-800/80 pt-2">
-                <button onclick="switchTab('visao-geral')" id="tab-visao-geral" class="tab-btn px-4 py-2 rounded-lg flex items-center gap-2 text-rpg-gold bg-rpg-border/50 border border-rpg-gold/30">
-                    <i class="fa-solid fa-chart-pie"></i> Visão Geral
-                </button>
-                <button onclick="switchTab('personagens')" id="tab-personagens" class="tab-btn px-4 py-2 rounded-lg flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50">
-                    <i class="fa-solid fa-users"></i> Personagens & XP
-                </button>
-                <button onclick="switchTab('inventario')" id="tab-inventario" class="tab-btn px-4 py-2 rounded-lg flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50">
-                    <i class="fa-solid fa-box-archive"></i> Inventário & Carga
-                </button>
-                <button onclick="switchTab('compendio')" id="tab-compendio" class="tab-btn px-4 py-2 rounded-lg flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50">
-                    <i class="fa-solid fa-khanda"></i> Compêndio & Armas
-                </button>
-                <button onclick="switchTab('bestiario')" id="tab-bestiario" class="tab-btn px-4 py-2 rounded-lg flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50">
-                    <i class="fa-solid fa-dragon"></i> Bestiário
-                </button>
-                <button onclick="switchTab('diario')" id="tab-diario" class="tab-btn px-4 py-2 rounded-lg flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50">
-                    <i class="fa-solid fa-book-bookmark"></i> Diário de Aventura
-                </button>
-            </nav>
+  <!-- TOP HEADER -->
+  <header class="border-b border-gray-800 bg-gray-950/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <i class="fa-solid fa-dice-d20 text-3xl text-amber-500 animate-pulse"></i>
+        <div>
+          <h1 class="text-xl font-bold tracking-wider text-amber-400">SOCIEDADE RPG</h1>
+          <p class="text-xs text-gray-400">Painel Geral da Campanha</p>
         </div>
-    </header>
+      </div>
 
-    <!-- Conteúdo Principal do Dashboard -->
-    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-        <!-- Banner de Mensagens de Notificação -->
-        <div id="toast" class="hidden fixed bottom-5 right-5 z-50 bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-emerald-400">
-            <i class="fa-solid fa-circle-check text-xl"></i>
-            <span id="toastMessage">Operação realizada com sucesso!</span>
+      <!-- STATUS DA CONEXÃO DA NUVEM -->
+      <div class="flex items-center space-x-4">
+        <div id="cloud-status" class="flex items-center space-x-2 text-xs px-3 py-1.5 rounded-full bg-yellow-950/60 border border-yellow-800 text-yellow-400">
+          <i class="fa-solid fa-spinner fa-spin" id="status-icon"></i>
+          <span id="status-text">Conectando ao Google Sheets...</span>
         </div>
-
-        <!-- 1. ABA: VISÃO GERAL -->
-        <section id="sec-visao-geral" class="tab-content space-y-6">
-            <!-- Cards de Métricas Gerais -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-rpg-panel border border-rpg-border p-5 rounded-2xl flex items-center justify-between">
-                    <div>
-                        <p class="text-xs uppercase font-semibold text-slate-400">Total de Heróis</p>
-                        <p class="text-3xl font-bold font-cinzel text-rpg-gold mt-1" id="stat-heroes">7</p>
-                    </div>
-                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-xl">
-                        <i class="fa-solid fa-user-shield"></i>
-                    </div>
-                </div>
-                <div class="bg-rpg-panel border border-rpg-border p-5 rounded-2xl flex items-center justify-between">
-                    <div>
-                        <p class="text-xs uppercase font-semibold text-slate-400">XP Total do Grupo</p>
-                        <p class="text-3xl font-bold font-cinzel text-emerald-400 mt-1" id="stat-total-xp">5.160</p>
-                    </div>
-                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl">
-                        <i class="fa-solid fa-wand-magic-sparkles"></i>
-                    </div>
-                </div>
-                <div class="bg-rpg-panel border border-rpg-border p-5 rounded-2xl flex items-center justify-between">
-                    <div>
-                        <p class="text-xs uppercase font-semibold text-slate-400">Itens Registrados</p>
-                        <p class="text-3xl font-bold font-cinzel text-blue-400 mt-1" id="stat-items">0</p>
-                    </div>
-                    <div class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-xl">
-                        <i class="fa-solid fa-boxes-stacked"></i>
-                    </div>
-                </div>
-                <div class="bg-rpg-panel border border-rpg-border p-5 rounded-2xl flex items-center justify-between">
-                    <div>
-                        <p class="text-xs uppercase font-semibold text-slate-400">Ameaças Catalogadas</p>
-                        <p class="text-3xl font-bold font-cinzel text-rose-400 mt-1" id="stat-monsters">0</p>
-                    </div>
-                    <div class="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center text-xl">
-                        <i class="fa-solid fa-skull"></i>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Gráficos e Visão Rápida -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Gráfico de XP dos Personagens -->
-                <div class="bg-rpg-panel border border-rpg-border p-6 rounded-2xl">
-                    <h3 class="text-lg font-cinzel font-bold text-rpg-gold mb-4 flex items-center gap-2">
-                        <i class="fa-solid fa-chart-bar"></i> Progresso de XP por Personagem
-                    </h3>
-                    <div class="h-64">
-                        <canvas id="xpChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Resumo dos Aventureiros -->
-                <div class="bg-rpg-panel border border-rpg-border p-6 rounded-2xl flex flex-col justify-between">
-                    <div>
-                        <h3 class="text-lg font-cinzel font-bold text-rpg-gold mb-4 flex items-center gap-2">
-                            <i class="fa-solid fa-crown"></i> Liderança do Grupo
-                        </h3>
-                        <div id="quick-heroes-list" class="space-y-3 custom-scrollbar max-h-60 overflow-y-auto pr-1">
-                            <!-- Inserido dinamicamente -->
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-slate-800 text-xs text-slate-400 text-right">
-                        Calculado automaticamente a partir dos dados do Google Sheets
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 2. ABA: PERSONAGENS & XP -->
-        <section id="sec-personagens" class="tab-content hidden space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-rpg-panel p-4 rounded-2xl border border-rpg-border">
-                <div>
-                    <h2 class="text-xl font-cinzel font-bold text-rpg-gold">Planilha de Personagens & XP</h2>
-                    <p class="text-xs text-slate-400">Gerenciamento completo do grupo com cálculo automático de XP Faltante, Progresso % e Carga Máxima.</p>
-                </div>
-                <button onclick="openHeroModal()" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow-md shadow-amber-600/20">
-                    <i class="fa-solid fa-user-plus"></i> Novo Personagem
-                </button>
-            </div>
-
-            <!-- Tabela Fiel à Planilha Original -->
-            <div class="bg-rpg-panel border border-rpg-border rounded-2xl overflow-hidden shadow-xl">
-                <div class="overflow-x-auto custom-scrollbar">
-                    <table class="w-full text-left text-sm text-slate-300">
-                        <thead class="bg-slate-900/80 text-xs uppercase text-rpg-gold font-cinzel border-b border-rpg-border">
-                            <tr>
-                                <th class="p-4">Nome</th>
-                                <th class="p-4">Raça / Especie</th>
-                                <th class="p-4">Classe</th>
-                                <th class="p-4 text-center">XP Atual</th>
-                                <th class="p-4 text-center">Nível</th>
-                                <th class="p-4 text-center">XP Nível</th>
-                                <th class="p-4 text-center">XP Próx.</th>
-                                <th class="p-4 text-center">XP Faltante</th>
-                                <th class="p-4 text-center w-36">Progresso %</th>
-                                <th class="p-4 text-center">Força</th>
-                                <th class="p-4 text-center">Peso Atual</th>
-                                <th class="p-4 text-center">Cap. Máxima</th>
-                                <th class="p-4 text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="heroes-table-body" class="divide-y divide-slate-800">
-                            <!-- Inserido dinamicamente -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- 3. ABA: INVENTÁRIO & CARGA -->
-        <section id="sec-inventario" class="tab-content hidden space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-rpg-panel p-4 rounded-2xl border border-rpg-border">
-                <div>
-                    <h2 class="text-xl font-cinzel font-bold text-rpg-gold">Inventário & Carga dos Aventureiros</h2>
-                    <p class="text-xs text-slate-400">Controle os itens carregados por cada integrante da Sociedade.</p>
-                </div>
-                <button onclick="openInventoryModal()" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow-md shadow-amber-600/20">
-                    <i class="fa-solid fa-plus"></i> Adicionar Item
-                </button>
-            </div>
-
-            <!-- Tabela do Inventário -->
-            <div class="bg-rpg-panel border border-rpg-border rounded-2xl overflow-hidden shadow-xl">
-                <div class="overflow-x-auto custom-scrollbar">
-                    <table class="w-full text-left text-sm text-slate-300">
-                        <thead class="bg-slate-900/80 text-xs uppercase text-rpg-gold font-cinzel border-b border-rpg-border">
-                            <tr>
-                                <th class="p-4">Item</th>
-                                <th class="p-4">Portador</th>
-                                <th class="p-4 text-center">Quantidade</th>
-                                <th class="p-4 text-center">Peso Unit. (lb)</th>
-                                <th class="p-4 text-center">Peso Total</th>
-                                <th class="p-4">Descrição / Notas</th>
-                                <th class="p-4 text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventory-table-body" class="divide-y divide-slate-800">
-                            <!-- Inserido dinamicamente -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- 4. ABA: COMPÊNDIO & ARMAS -->
-        <section id="sec-compendio" class="tab-content hidden space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-rpg-panel p-4 rounded-2xl border border-rpg-border">
-                <div>
-                    <h2 class="text-xl font-cinzel font-bold text-rpg-gold">Compêndio de Armas & Equipamentos</h2>
-                    <p class="text-xs text-slate-400">Catálogo de armas, armaduras e artefatos conhecidos na campanha.</p>
-                </div>
-                <button onclick="openWeaponModal()" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow-md shadow-amber-600/20">
-                    <i class="fa-solid fa-shield-cat"></i> Nova Arma/Item
-                </button>
-            </div>
-
-            <!-- Grid de Armas -->
-            <div id="weapons-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Inserido dinamicamente -->
-            </div>
-        </section>
-
-        <!-- 5. ABA: BESTIÁRIO -->
-        <section id="sec-bestiario" class="tab-content hidden space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-rpg-panel p-4 rounded-2xl border border-rpg-border">
-                <div>
-                    <h2 class="text-xl font-cinzel font-bold text-rpg-gold">Bestiário de Ameaças</h2>
-                    <p class="text-xs text-slate-400">Registro de criaturas e inimigos encontrados nas jornadas.</p>
-                </div>
-                <button onclick="openBestiaryModal()" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow-md shadow-amber-600/20">
-                    <i class="fa-solid fa-dragon"></i> Registrar Criatura
-                </button>
-            </div>
-
-            <!-- Grid do Bestiário -->
-            <div id="bestiary-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Inserido dinamicamente -->
-            </div>
-        </section>
-
-        <!-- 6. ABA: DIÁRIO DE AVENTURA -->
-        <section id="sec-diario" class="tab-content hidden space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-rpg-panel p-4 rounded-2xl border border-rpg-border">
-                <div>
-                    <h2 class="text-xl font-cinzel font-bold text-rpg-gold">Diário de Aventura</h2>
-                    <p class="text-xs text-slate-400">Crônicas das sessões, registros de missões e resumos de campanha.</p>
-                </div>
-                <button onclick="openJournalModal()" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow-md shadow-amber-600/20">
-                    <i class="fa-solid fa-feather-pointed"></i> Nova Crônica
-                </button>
-            </div>
-
-            <!-- Timeline do Diário -->
-            <div id="journal-timeline" class="space-y-6">
-                <!-- Inserido dinamicamente -->
-            </div>
-        </section>
-
-    </main>
-
-    <!-- MODAIS DE FORMULÁRIO (CRUD) -->
-
-    <!-- Modal Personagem -->
-    <div id="modal-hero" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-rpg-panel border border-rpg-border w-full max-w-lg rounded-2xl p-6 shadow-2xl relative">
-            <button onclick="closeHeroModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
-            <h3 class="text-xl font-cinzel font-bold text-rpg-gold mb-4" id="modal-hero-title">Cadastrar Personagem</h3>
-            <form id="form-hero" onsubmit="saveHero(event)" class="space-y-4">
-                <input type="hidden" id="hero-id">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Nome do Personagem</label>
-                        <input type="text" id="hero-name" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Raça / Espécie</label>
-                        <input type="text" id="hero-race" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Classe</label>
-                        <input type="text" id="hero-class" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">XP Atual</label>
-                        <input type="number" id="hero-xp" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                </div>
-                <div class="grid grid-cols-3 gap-4">
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Nível</label>
-                        <input type="number" id="hero-level" value="2" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">XP Nível Atual</label>
-                        <input type="number" id="hero-xp-min" value="300" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">XP Próx. Nível</label>
-                        <input type="number" id="hero-xp-max" value="900" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Atributo Força (Carga Máx = Força × 15 lb)</label>
-                    <input type="number" id="hero-str" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                </div>
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onclick="closeHeroModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-sm">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold rounded-lg text-sm">Salvar Personagem</button>
-                </div>
-            </form>
-        </div>
+        <button onclick="refreshData()" title="Sincronizar dados" class="p-2 text-gray-400 hover:text-white transition">
+          <i class="fa-solid fa-arrows-rotate"></i>
+        </button>
+      </div>
     </div>
 
-    <!-- Modal Inventário -->
-    <div id="modal-inventory" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-rpg-panel border border-rpg-border w-full max-w-lg rounded-2xl p-6 shadow-2xl relative">
-            <button onclick="closeInventoryModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
-            <h3 class="text-xl font-cinzel font-bold text-rpg-gold mb-4" id="modal-inv-title">Adicionar Item</h3>
-            <form id="form-inventory" onsubmit="saveInventoryItem(event)" class="space-y-4">
-                <input type="hidden" id="inv-id">
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Nome do Item</label>
-                    <input type="text" id="inv-name" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Portador</label>
-                        <select id="inv-owner" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                            <!-- Preenchido via JS -->
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Quantidade</label>
-                        <input type="number" id="inv-qty" value="1" min="1" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Peso Unitário (lb)</label>
-                    <input type="number" step="0.1" id="inv-weight" value="1" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Descrição / Observações</label>
-                    <textarea id="inv-desc" rows="2" class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500"></textarea>
-                </div>
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onclick="closeInventoryModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-sm">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold rounded-lg text-sm">Salvar Item</button>
-                </div>
-            </form>
+    <!-- NAVEGAÇÃO DE ABAS -->
+    <nav class="border-t border-gray-800 bg-gray-900/50">
+      <div class="max-w-7xl mx-auto px-4 flex overflow-x-auto space-x-1 custom-scrollbar">
+        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-tab px-4 py-3 text-sm font-medium border-b-2 border-amber-500 text-amber-400 flex items-center space-x-2 whitespace-nowrap">
+          <i class="fa-solid fa-chart-pie"></i><span>Dashboard</span>
+        </button>
+        <button onclick="switchTab('characters')" id="tab-characters" class="nav-tab px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center space-x-2 whitespace-nowrap">
+          <i class="fa-solid fa-users"></i><span>Personagens & XP</span>
+        </button>
+        <button onclick="switchTab('inventory')" id="tab-inventory" class="nav-tab px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center space-x-2 whitespace-nowrap">
+          <i class="fa-solid fa-boxes-stacked"></i><span>Inventário</span>
+        </button>
+        <button onclick="switchTab('compendium')" id="tab-compendium" class="nav-tab px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center space-x-2 whitespace-nowrap">
+          <i class="fa-solid fa-book-bookmark"></i><span>Compêndio</span>
+        </button>
+        <button onclick="switchTab('bestiary')" id="tab-bestiary" class="nav-tab px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center space-x-2 whitespace-nowrap">
+          <i class="fa-solid fa-dragon"></i><span>Bestiário</span>
+        </button>
+        <button onclick="switchTab('journal')" id="tab-journal" class="nav-tab px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center space-x-2 whitespace-nowrap">
+          <i class="fa-solid fa-book-open"></i><span>Diário de Bordo</span>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
+
+    <!-- 1. ABA DASHBOARD -->
+    <section id="sec-dashboard" class="space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="rpg-card p-4 rounded-xl border-l-4 border-amber-500">
+          <p class="text-xs text-gray-400 uppercase tracking-wider">Total de Personagens</p>
+          <p class="text-3xl font-extrabold text-amber-400 mt-1" id="dash-total-chars">0</p>
         </div>
-    </div>
-
-    <!-- Modal Arma/Compêndio -->
-    <div id="modal-weapon" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-rpg-panel border border-rpg-border w-full max-w-lg rounded-2xl p-6 shadow-2xl relative">
-            <button onclick="closeWeaponModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
-            <h3 class="text-xl font-cinzel font-bold text-rpg-gold mb-4" id="modal-wpn-title">Cadastrar Item/Arma</h3>
-            <form id="form-weapon" onsubmit="saveWeapon(event)" class="space-y-4">
-                <input type="hidden" id="wpn-id">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Nome do Equipamento</label>
-                        <input type="text" id="wpn-name" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Tipo</label>
-                        <input type="text" id="wpn-type" placeholder="Ex: Espada Curta, Armadura" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Dano / Efeito</label>
-                        <input type="text" id="wpn-damage" placeholder="Ex: 1d8 Perfurante" class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Propriedades</label>
-                        <input type="text" id="wpn-props" placeholder="Ex: Acuidade, Leve" class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                </div>
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onclick="closeWeaponModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-sm">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold rounded-lg text-sm">Salvar no Compêndio</button>
-                </div>
-            </form>
+        <div class="rpg-card p-4 rounded-xl border-l-4 border-blue-500">
+          <p class="text-xs text-gray-400 uppercase tracking-wider">Nível Médio do Grupo</p>
+          <p class="text-3xl font-extrabold text-blue-400 mt-1" id="dash-avg-level">0</p>
         </div>
-    </div>
-
-    <!-- Modal Bestiário -->
-    <div id="modal-bestiary" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-rpg-panel border border-rpg-border w-full max-w-lg rounded-2xl p-6 shadow-2xl relative">
-            <button onclick="closeBestiaryModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
-            <h3 class="text-xl font-cinzel font-bold text-rpg-gold mb-4" id="modal-bst-title">Registrar Criatura</h3>
-            <form id="form-bestiary" onsubmit="saveMonster(event)" class="space-y-4">
-                <input type="hidden" id="bst-id">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Nome do Monstro</label>
-                        <input type="text" id="bst-name" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">ND (Nível de Desafio)</label>
-                        <input type="text" id="bst-cr" placeholder="Ex: 1/2, 3" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Tipo de Criatura</label>
-                        <input type="text" id="bst-type" placeholder="Ex: Besta, Morto-vivo" class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Pontos de Vida (PV)</label>
-                        <input type="text" id="bst-hp" placeholder="Ex: 22 (4d8 + 4)" class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Descrição / Notas de Combate</label>
-                    <textarea id="bst-notes" rows="2" class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500"></textarea>
-                </div>
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onclick="closeBestiaryModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-sm">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold rounded-lg text-sm">Salvar Criatura</button>
-                </div>
-            </form>
+        <div class="rpg-card p-4 rounded-xl border-l-4 border-purple-500">
+          <p class="text-xs text-gray-400 uppercase tracking-wider">Total de Itens Guardados</p>
+          <p class="text-3xl font-extrabold text-purple-400 mt-1" id="dash-total-items">0</p>
         </div>
-    </div>
-
-    <!-- Modal Diário -->
-    <div id="modal-journal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-rpg-panel border border-rpg-border w-full max-w-lg rounded-2xl p-6 shadow-2xl relative">
-            <button onclick="closeJournalModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
-            <h3 class="text-xl font-cinzel font-bold text-rpg-gold mb-4" id="modal-jrn-title">Nova Crônica de Aventura</h3>
-            <form id="form-journal" onsubmit="saveJournalEntry(event)" class="space-y-4">
-                <input type="hidden" id="jrn-id">
-                <div class="grid grid-cols-3 gap-4">
-                    <div class="col-span-2">
-                        <label class="text-xs text-slate-400 block mb-1">Título da Sessão</label>
-                        <input type="text" id="jrn-title-input" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Sessão #</label>
-                        <input type="number" id="jrn-session" value="1" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Data da Sessão</label>
-                    <input type="date" id="jrn-date" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Resumo dos Acontecimentos</label>
-                    <textarea id="jrn-content" rows="4" required class="w-full bg-slate-900 border border-rpg-border rounded-lg p-2 text-sm text-white focus:outline-none focus:border-amber-500"></textarea>
-                </div>
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onclick="closeJournalModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-sm">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold rounded-lg text-sm">Publicar Crônica</button>
-                </div>
-            </form>
+        <div class="rpg-card p-4 rounded-xl border-l-4 border-emerald-500">
+          <p class="text-xs text-gray-400 uppercase tracking-wider">Monstros Catalogados</p>
+          <p class="text-3xl font-extrabold text-emerald-400 mt-1" id="dash-total-monsters">0</p>
         </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="rpg-card p-5 rounded-xl">
+          <h2 class="text-lg font-bold text-gray-200 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-chart-column text-amber-500"></i> Distribuição de XP do Grupo
+          </h2>
+          <div class="h-64">
+            <canvas id="chartXP"></canvas>
+          </div>
+        </div>
+
+        <div class="rpg-card p-5 rounded-xl">
+          <h2 class="text-lg font-bold text-gray-200 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-weight-hanging text-blue-500"></i> Capacidade vs Carga do Grupo
+          </h2>
+          <div class="h-64">
+            <canvas id="chartCapacity"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. ABA PERSONAGENS & XP -->
+    <section id="sec-characters" class="space-y-6 hidden">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-amber-400">Planilha de Personagens & Experiência</h2>
+          <p class="text-sm text-gray-400">Gerenciamento completo de atributos, níveis, progresso de XP e limites de carga.</p>
+        </div>
+        <button onclick="openModal('modal-char')" class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition">
+          <i class="fa-solid fa-user-plus"></i> Adicionar Personagem
+        </button>
+      </div>
+
+      <div class="rpg-card rounded-xl overflow-hidden">
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left text-sm text-gray-300">
+            <thead class="bg-gray-950 text-amber-400 uppercase text-xs tracking-wider border-b border-gray-800">
+              <tr>
+                <th class="py-3 px-4">Nome</th>
+                <th class="py-3 px-4">Raça / Espécie</th>
+                <th class="py-3 px-4">Classe</th>
+                <th class="py-3 px-4 text-center">Nível</th>
+                <th class="py-3 px-4 text-right">XP Atual</th>
+                <th class="py-3 px-4 text-right">XP Nível</th>
+                <th class="py-3 px-4 text-right">XP Próx. Nível</th>
+                <th class="py-3 px-4 text-right">XP Faltante</th>
+                <th class="py-3 px-4 w-32">Progresso %</th>
+                <th class="py-3 px-4 text-center">Força</th>
+                <th class="py-3 px-4 text-right">Carga (lb)</th>
+                <th class="py-3 px-4 text-right">Cap. Máx (lb)</th>
+              </tr>
+            </thead>
+            <tbody id="table-characters-body" class="divide-y divide-gray-800/60">
+              <!-- Linhas geradas via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. ABA INVENTÁRIO -->
+    <section id="sec-inventory" class="space-y-6 hidden">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-xl font-bold text-amber-400">Inventário Geral do Grupo</h2>
+          <p class="text-sm text-gray-400">Controle de equipamentos, consumíveis e tesouros guardados.</p>
+        </div>
+        <button onclick="openModal('modal-item')" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition">
+          <i class="fa-solid fa-plus"></i> Novo Item
+        </button>
+      </div>
+
+      <div class="rpg-card rounded-xl overflow-hidden">
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left text-sm text-gray-300">
+            <thead class="bg-gray-950 text-purple-400 uppercase text-xs tracking-wider border-b border-gray-800">
+              <tr>
+                <th class="py-3 px-4">Item</th>
+                <th class="py-3 px-4">Possuidor</th>
+                <th class="py-3 px-4">Tipo</th>
+                <th class="py-3 px-4 text-center">Qtd</th>
+                <th class="py-3 px-4 text-right">Peso Unit. (lb)</th>
+                <th class="py-3 px-4 text-right">Peso Total (lb)</th>
+              </tr>
+            </thead>
+            <tbody id="table-inventory-body" class="divide-y divide-gray-800/60">
+              <!-- Itens injetados via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. ABA COMPÊNDIO -->
+    <section id="sec-compendium" class="space-y-6 hidden">
+      <div>
+        <h2 class="text-xl font-bold text-amber-400">Compêndio de Regras e Lore</h2>
+        <p class="text-sm text-gray-400">Registros de lore, feitiços e mecânicas da campanha.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="rpg-card p-5 rounded-xl space-y-2">
+          <i class="fa-solid fa-book text-amber-500 text-2xl"></i>
+          <h3 class="font-bold text-gray-200">Regras de Descanso</h3>
+          <p class="text-xs text-gray-400">Descanso Curto (1 hora): Permite gastar Dados de Vida para recuperar pontos de vida.</p>
+        </div>
+        <div class="rpg-card p-5 rounded-xl space-y-2">
+          <i class="fa-solid fa-shield-halved text-blue-500 text-2xl"></i>
+          <h3 class="font-bold text-gray-200">Regras de Carga</h3>
+          <p class="text-xs text-gray-400">A Capacidade Máxima de Carga é dada por Força × 15 lb. Ultrapassar causa penalidade no movimento.</p>
+        </div>
+        <div class="rpg-card p-5 rounded-xl space-y-2">
+          <i class="fa-solid fa-coins text-yellow-500 text-2xl"></i>
+          <h3 class="font-bold text-gray-200">Conversão de Moedas</h3>
+          <p class="text-xs text-gray-400">1 PL = 10 PO = 100 PP = 1000 PC.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. ABA BESTIÁRIO -->
+    <section id="sec-bestiary" class="space-y-6 hidden">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-xl font-bold text-amber-400">Bestiário Conhecido</h2>
+          <p class="text-sm text-gray-400">Criaturas e ameaças catalogadas pela Sociedade.</p>
+        </div>
+        <button onclick="openModal('modal-monster')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition">
+          <i class="fa-solid fa-skull"></i> Novo Monstro
+        </button>
+      </div>
+
+      <div id="bestiary-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Cards de monstros preenchidos via JS -->
+      </div>
+    </section>
+
+    <!-- 6. ABA DIÁRIO DE BORDO -->
+    <section id="sec-journal" class="space-y-6 hidden">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-xl font-bold text-amber-400">Diário de Bordo da Campanha</h2>
+          <p class="text-sm text-gray-400">Resumos das sessões e anotações dos acontecimentos.</p>
+        </div>
+        <button onclick="openModal('modal-journal')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition">
+          <i class="fa-solid fa-pen-to-square"></i> Nova Anotação
+        </button>
+      </div>
+
+      <div id="journal-list" class="space-y-4">
+        <!-- Entradas do diário preenchidas via JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL ADICIONAR PERSONAGEM -->
+  <div id="modal-char" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="rpg-card w-full max-w-lg p-6 rounded-2xl space-y-4">
+      <h3 class="text-lg font-bold text-amber-400 border-b border-gray-800 pb-2">Adicionar Novo Personagem</h3>
+      <form id="form-char" onsubmit="saveCharacter(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Nome do Personagem</label>
+          <input type="text" id="c-name" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm text-gray-200">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Raça / Especie</label>
+            <input type="text" id="c-race" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm text-gray-200">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Classe</label>
+            <input type="text" id="c-class" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm text-gray-200">
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Nível Atual</label>
+            <input type="number" id="c-level" value="1" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm text-gray-200">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">XP Atual</label>
+            <input type="number" id="c-xp" value="0" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm text-gray-200">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Força</label>
+            <input type="number" id="c-str" value="10" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm text-gray-200">
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-3">
+          <button type="button" onclick="closeModal('modal-char')" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded text-sm">Cancelar</button>
+          <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded text-sm font-semibold">Salvar Personagem</button>
+        </div>
+      </form>
     </div>
-
-
-    <!-- JAVASCRIPT DA APLICAÇÃO -->
-    <script>
-        // Data Local e Fallback Inicial com os 7 personagens fiéis à planilha
-        let state = {
-            heroes: [
-                { id: "1", name: "Arakanis", race: "Draconato", class: "Paladino", xp: 665, level: 2, xpMin: 300, xpMax: 900, str: 14 },
-                { id: "2", name: "Audric", race: "Elfo Drow", class: "Patrulheiro", xp: 855, level: 2, xpMin: 300, xpMax: 900, str: 10 },
-                { id: "3", name: "Lud", race: "Humano", class: "Ladino", xp: 400, level: 2, xpMin: 300, xpMax: 900, str: 10 },
-                { id: "4", name: "Lulu", race: "Gnoma", class: "Druida", xp: 790, level: 2, xpMin: 300, xpMax: 900, str: 8 },
-                { id: "5", name: "Lurid", race: "Golias", class: "Bárbaro", xp: 845, level: 2, xpMin: 300, xpMax: 900, str: 16 },
-                { id: "6", name: "Rianna", race: "Elfa", class: "Mago", xp: 760, level: 2, xpMin: 300, xpMax: 900, str: 8 },
-                { id: "7", name: "Shion", race: "Elfo", class: "Mago", xp: 855, level: 2, xpMin: 300, xpMax: 900, str: 8 }
-            ],
-            inventory: [],
-            weapons: [
-                { id: "w1", name: "Espada Longa", type: "Arma Marcial", damage: "1d8 Cortante", props: "Versátil (1d10)" },
-                { id: "w2", name: "Arco Curto", type: "Arma Simples", damage: "1d6 Perfurante", props: "Distância (80/320), Duas Mãos" }
-            ],
-            bestiary: [
-                { id: "b1", name: "Goblin Slime", cr: "1/4", type: "Humanóide", hp: "7 (2d6)", notes: "Ataca em emboscadas nas cavernas." }
-            ],
-            journal: [
-                { id: "j1", title: "O Despertar da Sociedade", session: 1, date: "2023-10-01", content: "O grupo se reuniu na taverna para aceitar o primeiro contrato de investigação." }
-            ]
-        };
-
-        let xpChartInstance = null;
-
-        // Inicialização na carga da página
-        window.addEventListener('DOMContentLoaded', () => {
-            renderAll();
-            fetchDataFromSheet();
-        });
-
-        // Alternância de Abas
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('text-rpg-gold', 'bg-rpg-border/50', 'border', 'border-rpg-gold/30');
-                btn.classList.add('text-slate-400');
-            });
-
-            document.getElementById(`sec-${tabId}`).classList.remove('hidden');
-            const activeBtn = document.getElementById(`tab-${tabId}`);
-            activeBtn.classList.remove('text-slate-400');
-            activeBtn.classList.add('text-rpg-gold', 'bg-rpg-border/50', 'border', 'border-rpg-gold/30');
-
-            if (tabId === 'visao-geral') {
-                renderChart();
-            }
-        }
-
-        // Renderização Global da Interface
-        function renderAll() {
-            renderHeroesTable();
-            renderInventoryTable();
-            renderWeaponsGrid();
-            renderBestiaryGrid();
-            renderJournalTimeline();
-            updateStats();
-            renderChart();
-            populateHeroSelects();
-        }
-
-        // 1. Renderizar Personagens & XP (Cálculos Fiéis à Planilha)
-        function renderHeroesTable() {
-            const tbody = document.getElementById('heroes-table-body');
-            const quickList = document.getElementById('quick-heroes-list');
-            tbody.innerHTML = '';
-            quickList.innerHTML = '';
-
-            state.heroes.forEach(hero => {
-                // Métricas Calculadas
-                const xpFaltante = Math.max(0, hero.xpMax - hero.xp);
-                const range = hero.xpMax - hero.xpMin;
-                const progressPct = range > 0 ? Math.min(100, Math.max(0, ((hero.xp - hero.xpMin) / range) * 100)) : 0;
-                
-                // Cálculo de Carga Carregada
-                const currentWeight = state.inventory
-                    .filter(item => item.ownerId === hero.id || item.ownerName === hero.name)
-                    .reduce((acc, item) => acc + (parseFloat(item.weight || 0) * parseInt(item.qty || 1)), 0);
-                
-                const maxWeight = (hero.str || 10) * 15;
-
-                // Tabela Principal
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-800/40 transition border-b border-slate-800/60";
-                tr.innerHTML = `
-                    <td class="p-4 font-semibold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-user-shield text-amber-500/70"></i> ${hero.name}
-                    </td>
-                    <td class="p-4 text-slate-300">${hero.race}</td>
-                    <td class="p-4 text-slate-300">${hero.class}</td>
-                    <td class="p-4 text-center font-mono text-emerald-400 font-bold">${hero.xp}</td>
-                    <td class="p-4 text-center"><span class="bg-amber-500/10 text-amber-400 px-2.5 py-1 rounded-md border border-amber-500/20 font-bold">${hero.level}</span></td>
-                    <td class="p-4 text-center font-mono text-slate-400">${hero.xpMin}</td>
-                    <td class="p-4 text-center font-mono text-slate-400">${hero.xpMax}</td>
-                    <td class="p-4 text-center font-mono text-rose-400">${xpFaltante}</td>
-                    <td class="p-4">
-                        <div class="w-full bg-slate-900 rounded-full h-3 border border-slate-700 relative overflow-hidden">
-                            <div class="bg-gradient-to-r from-amber-600 to-emerald-500 h-full rounded-full" style="width: ${progressPct}%"></div>
-                        </div>
-                        <span class="text-[10px] text-slate-400 font-mono block text-center mt-1">${progressPct.toFixed(1)}%</span>
-                    </td>
-                    <td class="p-4 text-center font-bold text-slate-200">${hero.str || 10}</td>
-                    <td class="p-4 text-center font-mono ${currentWeight > maxWeight ? 'text-rose-400 font-bold' : 'text-slate-300'}">${currentWeight.toFixed(1)} lb</td>
-                    <td class="p-4 text-center font-mono text-slate-400">${maxWeight} lb</td>
-                    <td class="p-4 text-center">
-                        <div class="flex items-center justify-center gap-2">
-                            <button onclick="editHero('${hero.id}')" class="text-amber-400 hover:text-amber-300 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button onclick="deleteHero('${hero.id}')" class="text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-
-                // Card Rápido (Visão Geral)
-                const quickDiv = document.createElement('div');
-                quickDiv.className = "flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800";
-                quickDiv.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs">${hero.level}</div>
-                        <div>
-                            <p class="text-sm font-semibold text-slate-200">${hero.name}</p>
-                            <p class="text-xs text-slate-400">${hero.race} • ${hero.class}</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xs font-mono text-emerald-400 font-bold">${hero.xp} XP</p>
-                        <p class="text-[10px] text-slate-500">Falta: ${xpFaltante} XP</p>
-                    </div>
-                `;
-                quickList.appendChild(quickDiv);
-            });
-        }
-
-        // 2. Renderizar Inventário
-        function renderInventoryTable() {
-            const tbody = document.getElementById('inventory-table-body');
-            tbody.innerHTML = '';
-
-            state.inventory.forEach(item => {
-                const totalWeight = parseFloat(item.weight || 0) * parseInt(item.qty || 1);
-                const owner = state.heroes.find(h => h.id === item.ownerId || h.name === item.ownerName);
-
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-800/40 transition border-b border-slate-800/60";
-                tr.innerHTML = `
-                    <td class="p-4 font-semibold text-white">${item.name}</td>
-                    <td class="p-4 text-slate-300"><span class="bg-slate-800 px-2 py-1 rounded text-xs border border-slate-700">${owner ? owner.name : (item.ownerName || 'Não Atribuído')}</span></td>
-                    <td class="p-4 text-center font-mono">${item.qty}</td>
-                    <td class="p-4 text-center font-mono text-slate-400">${item.weight} lb</td>
-                    <td class="p-4 text-center font-mono text-amber-400">${totalWeight.toFixed(1)} lb</td>
-                    <td class="p-4 text-xs text-slate-400 max-w-xs truncate">${item.desc || '-'}</td>
-                    <td class="p-4 text-center">
-                        <div class="flex items-center justify-center gap-2">
-                            <button onclick="editInventory('${item.id}')" class="text-amber-400 hover:text-amber-300 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button onclick="deleteInventory('${item.id}')" class="text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // 3. Renderizar Compêndio de Armas
-        function renderWeaponsGrid() {
-            const grid = document.getElementById('weapons-grid');
-            grid.innerHTML = '';
-
-            state.weapons.forEach(wpn => {
-                const card = document.createElement('div');
-                card.className = "bg-rpg-panel border border-rpg-border p-5 rounded-2xl relative flex flex-col justify-between";
-                card.innerHTML = `
-                    <div>
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="text-xs uppercase font-semibold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-500/20">${wpn.type}</span>
-                            <div class="flex gap-2">
-                                <button onclick="editWeapon('${wpn.id}')" class="text-slate-400 hover:text-amber-400"><i class="fa-solid fa-pen"></i></button>
-                                <button onclick="deleteWeapon('${wpn.id}')" class="text-slate-400 hover:text-rose-400"><i class="fa-solid fa-trash"></i></button>
-                            </div>
-                        </div>
-                        <h4 class="text-lg font-cinzel font-bold text-white mb-2">${wpn.name}</h4>
-                        <p class="text-sm font-mono text-emerald-400 mb-1"><i class="fa-solid fa-burst text-xs"></i> ${wpn.damage || 'N/A'}</p>
-                        <p class="text-xs text-slate-400">${wpn.props || 'Sem propriedades especiais'}</p>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        }
-
-        // 4. Renderizar Bestiário
-        function renderBestiaryGrid() {
-            const grid = document.getElementById('bestiary-grid');
-            grid.innerHTML = '';
-
-            state.bestiary.forEach(monster => {
-                const card = document.createElement('div');
-                card.className = "bg-rpg-panel border border-rpg-border p-5 rounded-2xl relative flex flex-col justify-between border-l-4 border-l-rose-500";
-                card.innerHTML = `
-                    <div>
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="text-xs font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-md border border-rose-500/20">ND ${monster.cr}</span>
-                            <div class="flex gap-2">
-                                <button onclick="editMonster('${monster.id}')" class="text-slate-400 hover:text-amber-400"><i class="fa-solid fa-pen"></i></button>
-                                <button onclick="deleteMonster('${monster.id}')" class="text-slate-400 hover:text-rose-400"><i class="fa-solid fa-trash"></i></button>
-                            </div>
-                        </div>
-                        <h4 class="text-lg font-cinzel font-bold text-white mb-1">${monster.name}</h4>
-                        <p class="text-xs text-slate-400 mb-3">${monster.type || 'Criatura'}</p>
-                        <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 mb-3">
-                            <p class="text-xs font-mono text-slate-300"><strong class="text-rose-400">PV:</strong> ${monster.hp || 'Não informado'}</p>
-                        </div>
-                        <p class="text-xs text-slate-400 italic">${monster.notes || ''}</p>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        }
-
-        // 5. Renderizar Diário
-        function renderJournalTimeline() {
-            const timeline = document.getElementById('journal-timeline');
-            timeline.innerHTML = '';
-
-            state.journal.forEach(entry => {
-                const card = document.createElement('div');
-                card.className = "bg-rpg-panel border border-rpg-border p-6 rounded-2xl relative pl-8 border-l-4 border-l-amber-500";
-                card.innerHTML = `
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-cinzel text-amber-400 font-bold">SESSÃO #${entry.session} • ${entry.date}</span>
-                        <div class="flex gap-2">
-                            <button onclick="editJournalEntry('${entry.id}')" class="text-slate-400 hover:text-amber-400"><i class="fa-solid fa-pen"></i></button>
-                            <button onclick="deleteJournalEntry('${entry.id}')" class="text-slate-400 hover:text-rose-400"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </div>
-                    <h3 class="text-xl font-cinzel font-bold text-white mb-3">${entry.title}</h3>
-                    <p class="text-sm text-slate-300 whitespace-pre-line leading-relaxed">${entry.content}</p>
-                `;
-                timeline.appendChild(card);
-            });
-        }
-
-        // Atualizar Estatísticas da Visão Geral
-        function updateStats() {
-            document.getElementById('stat-heroes').innerText = state.heroes.length;
-            const totalXP = state.heroes.reduce((acc, h) => acc + (parseInt(h.xp) || 0), 0);
-            document.getElementById('stat-total-xp').innerText = totalXP.toLocaleString('pt-BR');
-            document.getElementById('stat-items').innerText = state.inventory.length;
-            document.getElementById('stat-monsters').innerText = state.bestiary.length;
-        }
-
-        // Gráfico com Chart.js
-        function renderChart() {
-            const ctx = document.getElementById('xpChart');
-            if (!ctx) return;
-
-            if (xpChartInstance) {
-                xpChartInstance.destroy();
-            }
-
-            const labels = state.heroes.map(h => h.name);
-            const dataXP = state.heroes.map(h => h.xp);
-
-            xpChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'XP Atual',
-                        data: dataXP,
-                        backgroundColor: 'rgba(212, 175, 55, 0.6)',
-                        borderColor: 'rgba(212, 175, 55, 1)',
-                        borderWidth: 1,
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: { color: '#94a3b8' }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: '#94a3b8' }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
-        }
-
-        // Popula os selects de Portador no Inventário
-        function populateHeroSelects() {
-            const select = document.getElementById('inv-owner');
-            select.innerHTML = '<option value="">Selecione um herói...</option>';
-            state.heroes.forEach(h => {
-                const opt = document.createElement('option');
-                opt.value = h.id;
-                opt.innerText = `${h.name} (${h.class})`;
-                select.appendChild(opt);
-            });
-        }
-
-        // NOTIFICAÇÕES TOAST
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toastMessage').innerText = msg;
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 3500);
-        }
-
-        // --- INTEGRAÇÃO COM GOOGLE APPS SCRIPT (API_URL) ---
-
-        async function fetchDataFromSheet() {
-            const dot = document.getElementById('syncStatusDot');
-            const txt = document.getElementById('syncStatusText');
-            const icon = document.getElementById('refreshIcon');
-
-            icon.classList.add('animate-spin');
-            dot.className = "w-2 h-2 rounded-full bg-amber-500 inline-block animate-ping";
-            txt.innerText = "Sincronizando...";
-
-            try {
-                const res = await fetch(API_URL);
-                if (!res.ok) throw new Error("Erro na requisição");
-                const data = await res.json();
-
-                if (data.heroes && data.heroes.length > 0) state.heroes = data.heroes;
-                if (data.inventory) state.inventory = data.inventory;
-                if (data.weapons) state.weapons = data.weapons;
-                if (data.bestiary) state.bestiary = data.bestiary;
-                if (data.journal) state.journal = data.journal;
-
-                renderAll();
-                dot.className = "w-2 h-2 rounded-full bg-emerald-500 inline-block";
-                txt.innerText = "Sincronizado com Google Sheets";
-            } catch (err) {
-                console.warn("Usando estado local devido a falha de conexão com a API:", err);
-                dot.className = "w-2 h-2 rounded-full bg-rose-500 inline-block";
-                txt.innerText = "Modo Offline (Dados Locais)";
-            } finally {
-                icon.classList.remove('animate-spin');
-            }
-        }
-
-        async function syncToSheet(action, type, payload) {
-            try {
-                await fetch(API_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action, type, payload })
-                });
-                showToast("Alteração enviada à planilha com sucesso!");
-            } catch (err) {
-                console.error("Erro ao enviar dados para a API:", err);
-                showToast("Erro ao sincronizar. Salvo localmente.");
-            }
-        }
-
-        // --- AÇÕES CRUD DE PERSONAGENS ---
-        function openHeroModal(hero = null) {
-            document.getElementById('modal-hero-title').innerText = hero ? 'Editar Personagem' : 'Cadastrar Personagem';
-            document.getElementById('hero-id').value = hero ? hero.id : '';
-            document.getElementById('hero-name').value = hero ? hero.name : '';
-            document.getElementById('hero-race').value = hero ? hero.race : '';
-            document.getElementById('hero-class').value = hero ? hero.class : '';
-            document.getElementById('hero-xp').value = hero ? hero.xp : 0;
-            document.getElementById('hero-level').value = hero ? hero.level : 2;
-            document.getElementById('hero-xp-min').value = hero ? hero.xpMin : 300;
-            document.getElementById('hero-xp-max').value = hero ? hero.xpMax : 900;
-            document.getElementById('hero-str').value = hero ? hero.str : 10;
-            document.getElementById('modal-hero').classList.remove('hidden');
-        }
-
-        function closeHeroModal() {
-            document.getElementById('modal-hero').classList.add('hidden');
-        }
-
-        function saveHero(e) {
-            e.preventDefault();
-            const id = document.getElementById('hero-id').value || Date.now().toString();
-            const heroData = {
-                id,
-                name: document.getElementById('hero-name').value,
-                race: document.getElementById('hero-race').value,
-                class: document.getElementById('hero-class').value,
-                xp: parseInt(document.getElementById('hero-xp').value) || 0,
-                level: parseInt(document.getElementById('hero-level').value) || 1,
-                xpMin: parseInt(document.getElementById('hero-xp-min').value) || 300,
-                xpMax: parseInt(document.getElementById('hero-xp-max').value) || 900,
-                str: parseInt(document.getElementById('hero-str').value) || 10
-            };
-
-            const index = state.heroes.findIndex(h => h.id === id);
-            if (index >= 0) {
-                state.heroes[index] = heroData;
-            } else {
-                state.heroes.push(heroData);
-            }
-
-            renderAll();
-            closeHeroModal();
-            syncToSheet('save', 'heroes', heroData);
-        }
-
-        function editHero(id) {
-            const hero = state.heroes.find(h => h.id === id);
-            if (hero) openHeroModal(hero);
-        }
-
-        function deleteHero(id) {
-            if (confirm("Tem certeza que deseja remover este personagem?")) {
-                state.heroes = state.heroes.filter(h => h.id !== id);
-                renderAll();
-                syncToSheet('delete', 'heroes', { id });
-            }
-        }
-
-        // --- AÇÕES CRUD DE INVENTÁRIO ---
-        function openInventoryModal(item = null) {
-            document.getElementById('modal-inv-title').innerText = item ? 'Editar Item' : 'Adicionar Item';
-            document.getElementById('inv-id').value = item ? item.id : '';
-            document.getElementById('inv-name').value = item ? item.name : '';
-            document.getElementById('inv-owner').value = item ? item.ownerId : '';
-            document.getElementById('inv-qty').value = item ? item.qty : 1;
-            document.getElementById('inv-weight').value = item ? item.weight : 1;
-            document.getElementById('inv-desc').value = item ? item.desc : '';
-            document.getElementById('modal-inventory').classList.remove('hidden');
-        }
-
-        function closeInventoryModal() {
-            document.getElementById('modal-inventory').classList.add('hidden');
-        }
-
-        function saveInventoryItem(e) {
-            e.preventDefault();
-            const id = document.getElementById('inv-id').value || Date.now().toString();
-            const ownerId = document.getElementById('inv-owner').value;
-            const owner = state.heroes.find(h => h.id === ownerId);
-
-            const invData = {
-                id,
-                name: document.getElementById('inv-name').value,
-                ownerId: ownerId,
-                ownerName: owner ? owner.name : '',
-                qty: parseInt(document.getElementById('inv-qty').value) || 1,
-                weight: parseFloat(document.getElementById('inv-weight').value) || 0,
-                desc: document.getElementById('inv-desc').value
-            };
-
-            const idx = state.inventory.findIndex(i => i.id === id);
-            if (idx >= 0) state.inventory[idx] = invData;
-            else state.inventory.push(invData);
-
-            renderAll();
-            closeInventoryModal();
-            syncToSheet('save', 'inventory', invData);
-        }
-
-        function editInventory(id) {
-            const item = state.inventory.find(i => i.id === id);
-            if (item) openInventoryModal(item);
-        }
-
-        function deleteInventory(id) {
-            if (confirm("Remover este item do inventário?")) {
-                state.inventory = state.inventory.filter(i => i.id !== id);
-                renderAll();
-                syncToSheet('delete', 'inventory', { id });
-            }
-        }
-
-        // --- AÇÕES CRUD COMPÊNDIO / ARMAS ---
-        function openWeaponModal(wpn = null) {
-            document.getElementById('modal-wpn-title').innerText = wpn ? 'Editar Item' : 'Cadastrar Item/Arma';
-            document.getElementById('wpn-id').value = wpn ? wpn.id : '';
-            document.getElementById('wpn-name').value = wpn ? wpn.name : '';
-            document.getElementById('wpn-type').value = wpn ? wpn.type : '';
-            document.getElementById('wpn-damage').value = wpn ? wpn.damage : '';
-            document.getElementById('wpn-props').value = wpn ? wpn.props : '';
-            document.getElementById('modal-weapon').classList.remove('hidden');
-        }
-
-        function closeWeaponModal() {
-            document.getElementById('modal-weapon').classList.add('hidden');
-        }
-
-        function saveWeapon(e) {
-            e.preventDefault();
-            const id = document.getElementById('wpn-id').value || Date.now().toString();
-            const wpnData = {
-                id,
-                name: document.getElementById('wpn-name').value,
-                type: document.getElementById('wpn-type').value,
-                damage: document.getElementById('wpn-damage').value,
-                props: document.getElementById('wpn-props').value
-            };
-
-            const idx = state.weapons.findIndex(w => w.id === id);
-            if (idx >= 0) state.weapons[idx] = wpnData;
-            else state.weapons.push(wpnData);
-
-            renderAll();
-            closeWeaponModal();
-            syncToSheet('save', 'weapons', wpnData);
-        }
-
-        function editWeapon(id) {
-            const wpn = state.weapons.find(w => w.id === id);
-            if (wpn) openWeaponModal(wpn);
-        }
-
-        function deleteWeapon(id) {
-            if (confirm("Remover este equipamento do compêndio?")) {
-                state.weapons = state.weapons.filter(w => w.id !== id);
-                renderAll();
-                syncToSheet('delete', 'weapons', { id });
-            }
-        }
-
-        // --- AÇÕES CRUD BESTIÁRIO ---
-        function openBestiaryModal(bst = null) {
-            document.getElementById('modal-bst-title').innerText = bst ? 'Editar Criatura' : 'Registrar Criatura';
-            document.getElementById('bst-id').value = bst ? bst.id : '';
-            document.getElementById('bst-name').value = bst ? bst.name : '';
-            document.getElementById('bst-cr').value = bst ? bst.cr : '';
-            document.getElementById('bst-type').value = bst ? bst.type : '';
-            document.getElementById('bst-hp').value = bst ? bst.hp : '';
-            document.getElementById('bst-notes').value = bst ? bst.notes : '';
-            document.getElementById('modal-bestiary').classList.remove('hidden');
-        }
-
-        function closeBestiaryModal() {
-            document.getElementById('modal-bestiary').classList.add('hidden');
-        }
-
-        function saveMonster(e) {
-            e.preventDefault();
-            const id = document.getElementById('bst-id').value || Date.now().toString();
-            const monsterData = {
-                id,
-                name: document.getElementById('bst-name').value,
-                cr: document.getElementById('bst-cr').value,
-                type: document.getElementById('bst-type').value,
-                hp: document.getElementById('bst-hp').value,
-                notes: document.getElementById('bst-notes').value
-            };
-
-            const idx = state.bestiary.findIndex(b => b.id === id);
-            if (idx >= 0) state.bestiary[idx] = monsterData;
-            else state.bestiary.push(monsterData);
-
-            renderAll();
-            closeBestiaryModal();
-            syncToSheet('save', 'bestiary', monsterData);
-        }
-
-        function editMonster(id) {
-            const monster = state.bestiary.find(b => b.id === id);
-            if (monster) openBestiaryModal(monster);
-        }
-
-        function deleteMonster(id) {
-            if (confirm("Remover esta criatura do bestiário?")) {
-                state.bestiary = state.bestiary.filter(b => b.id !== id);
-                renderAll();
-                syncToSheet('delete', 'bestiary', { id });
-            }
-        }
-
-        // --- AÇÕES CRUD DIÁRIO ---
-        function openJournalModal(jrn = null) {
-            document.getElementById('modal-jrn-title').innerText = jrn ? 'Editar Crônica' : 'Nova Crônica de Aventura';
-            document.getElementById('jrn-id').value = jrn ? jrn.id : '';
-            document.getElementById('jrn-title-input').value = jrn ? jrn.title : '';
-            document.getElementById('jrn-session').value = jrn ? jrn.session : (state.journal.length + 1);
-            document.getElementById('jrn-date').value = jrn ? jrn.date : new Date().toISOString().split('T')[0];
-            document.getElementById('jrn-content').value = jrn ? jrn.content : '';
-            document.getElementById('modal-journal').classList.remove('hidden');
-        }
-
-        function closeJournalModal() {
-            document.getElementById('modal-journal').classList.add('hidden');
-        }
-
-        function saveJournalEntry(e) {
-            e.preventDefault();
-            const id = document.getElementById('jrn-id').value || Date.now().toString();
-            const journalData = {
-                id,
-                title: document.getElementById('jrn-title-input').value,
-                session: parseInt(document.getElementById('jrn-session').value) || 1,
-                date: document.getElementById('jrn-date').value,
-                content: document.getElementById('jrn-content').value
-            };
-
-            const idx = state.journal.findIndex(j => j.id === id);
-            if (idx >= 0) state.journal[idx] = journalData;
-            else state.journal.push(journalData);
-
-            renderAll();
-            closeJournalModal();
-            syncToSheet('save', 'journal', journalData);
-        }
-
-        function editJournalEntry(id) {
-            const entry = state.journal.find(j => j.id === id);
-            if (entry) openJournalModal(entry);
-        }
-
-        function deleteJournalEntry(id) {
-            if (confirm("Remover esta crônica do diário?")) {
-                state.journal = state.journal.filter(j => j.id !== id);
-                renderAll();
-                syncToSheet('delete', 'journal', { id });
-            }
-        }
-    </script>
-</body>
-</html>
+  </div>
+
+  <!-- RODAPÉ -->
+  <footer class="border-t border-gray-900 bg-gray-950 py-4 text-center text-xs text-gray-500">
+    <p>Sociedade RPG &copy; 2026 - Sistema Sincronizado com Google Sheets</p>
+  </footer>
+
+  <!-- SCRIPT DE LOGICA E SINCRONIZAÇÃO -->
+  <script>
+    // URL EXATA DA SUA API DO GOOGLE APPS SCRIPT
+    const API_URL = "
