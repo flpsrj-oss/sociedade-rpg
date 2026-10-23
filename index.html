@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Controle - Sociedade RPG</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased pb-12">
+
+    <!-- Header / Navbar -->
+    <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 p-2 rounded-lg text-white">
+                    <i data-lucide="shield-alert" class="w-6 h-6"></i>
+                </div>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                    Sociedade RPG / XP
+                </h1>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="fetchCharactersFromSheet()" id="refreshBtn" class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-slate-700 hover:bg-slate-600 rounded-lg border border-slate-600 transition">
+                    <i data-lucide="refresh-cw" class="w-4 h-4" id="refreshIcon"></i>
+                    Sincronizar
+                </button>
+                <button onclick="openModal()" class="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-lg shadow-indigo-600/30 transition">
+                    <i data-lucide="user-plus" class="w-4 h-4"></i>
+                    Novo Personagem
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
+
+        <!-- Status de Conexão -->
+        <div id="statusBanner" class="hidden p-4 rounded-xl border text-sm flex items-center justify-between">
+            <span id="statusMessage"></span>
+        </div>
+
+        <!-- Dashboard Cards (KPIs) -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 flex items-center gap-4 shadow-sm">
+                <div class="bg-indigo-500/10 text-indigo-400 p-3 rounded-xl border border-indigo-500/20">
+                    <i data-lucide="users" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Total de Membros</p>
+                    <h3 id="kpiTotal" class="text-2xl font-bold mt-0.5">0</h3>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 flex items-center gap-4 shadow-sm">
+                <div class="bg-purple-500/10 text-purple-400 p-3 rounded-xl border border-purple-500/20">
+                    <i data-lucide="sparkles" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Média de Nível</p>
+                    <h3 id="kpiAvgLevel" class="text-2xl font-bold mt-0.5">0</h3>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 flex items-center gap-4 shadow-sm">
+                <div class="bg-emerald-500/10 text-emerald-400 p-3 rounded-xl border border-emerald-500/20">
+                    <i data-lucide="award" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Total XP do Grupo</p>
+                    <h3 id="kpiTotalXP" class="text-2xl font-bold mt-0.5">0</h3>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 flex items-center gap-4 shadow-sm">
+                <div class="bg-amber-500/10 text-amber-400 p-3 rounded-xl border border-amber-500/20">
+                    <i data-lucide="crown" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Maior Nível</p>
+                    <h3 id="kpiMaxLevel" class="text-2xl font-bold mt-0.5">-</h3>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tabela de Personagens -->
+        <section class="bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden">
+            <div class="p-5 border-b border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h2 class="text-lg font-semibold flex items-center gap-2">
+                    <i data-lucide="swords" class="w-5 h-5 text-indigo-400"></i>
+                    Lista de Personagens
+                </h2>
+                <div class="relative w-full sm:w-64">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="searchInput" oninput="filterCharacters()" placeholder="Buscar personagem..." class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-indigo-500 transition">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-300">
+                    <thead class="bg-slate-900/60 uppercase text-xs tracking-wider text-slate-400 border-b border-slate-700">
+                        <tr>
+                            <th class="py-3.5 px-4">Nome</th>
+                            <th class="py-3.5 px-4">Raça</th>
+                            <th class="py-3.5 px-4">Classe</th>
+                            <th class="py-3.5 px-4">Nível</th>
+                            <th class="py-3.5 px-4">XP Atual</th>
+                            <th class="py-3.5 px-4">Força</th>
+                        </tr>
+                    </thead>
+                    <tbody id="characterTableBody" class="divide-y divide-slate-700/50">
+                        <tr>
+                            <td colspan="6" class="text-center py-8 text-slate-500">
+                                Carregando dados da planilha...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal Novo Personagem -->
+    <div id="characterModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl max-w-md w-full p-6 shadow-2xl relative">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                <i data-lucide="user-plus" class="w-5 h-5 text-indigo-400"></i>
+                Adicionar Novo Personagem
+            </h3>
+
+            <form id="addCharacterForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Nome do Personagem</label>
+                    <input type="text" id="formName" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Raça / Espécie</label>
+                        <input type="text" id="formRace" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Classe</label>
+                        <input type="text" id="formClass" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">XP Atual</label>
+                        <input type="number" id="formXP" value="0" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Nível</label>
+                        <input type="number" id="formLevel" value="1" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Força</label>
+                        <input type="number" id="formStr" value="10" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <div class="pt-4 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 rounded-lg transition">Cancelar</button>
+                    <button type="submit" id="saveBtn" class="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg shadow-lg shadow-indigo-600/30 transition flex items-center gap-2">
+                        <span>Salvar na Nuvem</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script de Lógica e Integração Nuvem -->
+    <script>
+        // =========================================================================
+        // COLE A SUA URL DO GOOGLE APPS SCRIPT ENTRE AS ASPAS ABAIXO:
+        // =========================================================================
+        const API_URL = "https://script.google.com/macros/s/AKfycbwXawHTnSvXfzmknyl07Wo1dEebg-XvcIOshtxLi-I0hF-S49zodxaal24JZByt068DsA/exec";
+
+        let allCharacters = [];
+
+        // Inicializar Lucide Icons
+        document.addEventListener("DOMContentLoaded", () => {
+            lucide.createIcons();
+            fetchCharactersFromSheet();
+        });
+
+        // Buscar dados da planilha na Nuvem (Google Sheets)
+        async function fetchCharactersFromSheet() {
+            const refreshIcon = document.getElementById("refreshIcon");
+            if (refreshIcon) refreshIcon.classList.add("animate-spin");
+
+            if (API_URL === "SUA_URL_DO_APPS_SCRIPT_AQUI" || !API_URL) {
+                showBanner("Por favor, cole a URL do seu Google Apps Script na variável API_URL do código.", "warning");
+                if (refreshIcon) refreshIcon.classList.remove("animate-spin");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}?sheet=Personagens`);
+                const data = await response.json();
+
+                if (Array.isArray(data)) {
+                    allCharacters = data.map((item, index) => ({
+                        id: index + 1,
+                        name: item["Nome do Personagem"] || item["Nome"] || "Sem Nome",
+                        race: item["Raça / Especie"] || item["Raça"] || "-",
+                        class: item["Classe"] || "-",
+                        xp: Number(item["XP Atual"] || item["XP"] || 0),
+                        level: Number(item["Nível Atual"] || item["Nível"] || 1),
+                        str: Number(item["Força"] || 10)
+                    }));
+
+                    renderCharacters(allCharacters);
+                    updateDashboard(allCharacters);
+                    showBanner("Dados sincronizados com a nuvem com sucesso!", "success");
+                } else {
+                    showBanner("Erro ao formatar os dados recebidos da planilha.", "error");
+                }
+            } catch (error) {
+                console.error("Erro na requisição:", error);
+                showBanner("Erro ao conectar à planilha na nuvem.", "error");
+            } finally {
+                if (refreshIcon) refreshIcon.classList.remove("animate-spin");
+            }
+        }
+
+        // Renderizar Tabela
+        function renderCharacters(characters) {
+            const tbody = document.getElementById("characterTableBody");
+            
+            if (characters.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-8 text-slate-500">
+                            Nenhum personagem encontrado na planilha.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = characters.map(c => `
+                <tr class="hover:bg-slate-700/30 transition">
+                    <td class="py-3.5 px-4 font-semibold text-indigo-300">${escapeHtml(c.name)}</td>
+                    <td class="py-3.5 px-4">${escapeHtml(c.race)}</td>
+                    <td class="py-3.5 px-4">${escapeHtml(c.class)}</td>
+                    <td class="py-3.5 px-4">
+                        <span class="px-2.5 py-1 text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full">
+                            Nível ${c.level}
+                        </span>
+                    </td>
+                    <td class="py-3.5 px-4 font-mono">${c.xp.toLocaleString()} XP</td>
+                    <td class="py-3.5 px-4">${c.str}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Atualizar Métricas / KPIs
+        function updateDashboard(characters) {
+            const total = characters.length;
+            const totalXP = characters.reduce((acc, c) => acc + c.xp, 0);
+            const avgLevel = total > 0 ? (characters.reduce((acc, c) => acc + c.level, 0) / total).toFixed(1) : 0;
+            const maxLevel = total > 0 ? Math.max(...characters.map(c => c.level)) : "-";
+
+            document.getElementById("kpiTotal").innerText = total;
+            document.getElementById("kpiTotalXP").innerText = totalXP.toLocaleString();
+            document.getElementById("kpiAvgLevel").innerText = avgLevel;
+            document.getElementById("kpiMaxLevel").innerText = maxLevel;
+        }
+
+        // Enviar Novo Personagem para a Nuvem
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const saveBtn = document.getElementById("saveBtn");
+            saveBtn.disabled = true;
+            saveBtn.innerText = "Salvando na Nuvem...";
+
+            const payload = {
+                sheet: "Personagens",
+                action: "add",
+                data: {
+                    "Nome do Personagem": document.getElementById("formName").value,
+                    "Raça / Especie": document.getElementById("formRace").value,
+                    "Classe": document.getElementById("formClass").value,
+                    "XP Atual": Number(document.getElementById("formXP").value),
+                    "Nível Atual": Number(document.getElementById("formLevel").value),
+                    "Força": Number(document.getElementById("formStr").value)
+                }
+            };
+
+            try {
+                await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
+
+                closeModal();
+                document.getElementById("addCharacterForm").reset();
+                await fetchCharactersFromSheet(); // Recarrega da nuvem
+            } catch (err) {
+                console.error("Erro ao salvar:", err);
+                showBanner("Erro ao salvar o personagem na planilha.", "error");
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerText = "Salvar na Nuvem";
+            }
+        }
+
+        // Filtro de Busca
+        function filterCharacters() {
+            const query = document.getElementById("searchInput").value.toLowerCase();
+            const filtered = allCharacters.filter(c => 
+                c.name.toLowerCase().includes(query) ||
+                c.race.toLowerCase().includes(query) ||
+                c.class.toLowerCase().includes(query)
+            );
+            renderCharacters(filtered);
+        }
+
+        // Modais e Utilitários UI
+        function openModal() {
+            document.getElementById("characterModal").classList.remove("hidden");
+            document.getElementById("characterModal").classList.add("flex");
+        }
+
+        function closeModal() {
+            document.getElementById("characterModal").classList.add("hidden");
+            document.getElementById("characterModal").classList.remove("flex");
+        }
+
+        function showBanner(msg, type) {
+            const banner = document.getElementById("statusBanner");
+            const text = document.getElementById("statusMessage");
+
+            banner.classList.remove("hidden", "bg-emerald-500/10", "border-emerald-500/30", "text-emerald-400", "bg-amber-500/10", "border-amber-500/30", "text-amber-400", "bg-rose-500/10", "border-rose-500/30", "text-rose-400");
+
+            if (type === "success") {
+                banner.classList.add("bg-emerald-500/10", "border-emerald-500/30", "text-emerald-400");
+            } else if (type === "warning") {
+                banner.classList.add("bg-amber-500/10", "border-amber-500/30", "text-amber-400");
+            } else {
+                banner.classList.add("bg-rose-500/10", "border-rose-500/30", "text-rose-400");
+            }
+
+            text.innerText = msg;
+            
+            // Oculta automaticamente após 5 segundos se for mensagem de sucesso
+            if (type === "success") {
+                setTimeout(() => banner.classList.add("hidden"), 5000);
+            }
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, match => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[match]));
+        }
+    </script>
+</body>
+</html>
